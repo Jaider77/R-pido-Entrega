@@ -37,7 +37,8 @@ Este repositorio contiene la infraestructura automatizada para la plataforma log
 
 ---
 
-## 📂 Estructura del Repositorio
+## 📂 Estructura de carpetas
+
 
 ```
 rapido-entrega/
