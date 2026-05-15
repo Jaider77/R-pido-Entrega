@@ -4,7 +4,6 @@ Configuration settings for routes service
 
 import json
 from typing import Any
-
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -31,7 +30,13 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # CORS
-    allowed_origins: Any = ["http://localhost:3000", "http://localhost:80"]
+    allowed_origins: Any = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://localhost:80",
+    ]
 
     # Geolocation
     default_zoom_level: int = 12
