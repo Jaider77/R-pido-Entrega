@@ -20,10 +20,10 @@ from app.schemas import (
 )
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
-logger = logging.getLogger(__name__)
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -144,7 +144,7 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 
     return TokenResponse(
         access_token=access_token,
-        token_type="bearer",
+        token_type="bearer",  # nosec B106
         expires_in=expires_in,
         user=UserResponse.model_validate(user),
     )

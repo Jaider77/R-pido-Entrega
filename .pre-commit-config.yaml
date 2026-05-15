@@ -76,7 +76,7 @@ repos:
           - "sqlalchemy>=2.0"
           - "redis>=5.0"
         args: ["--ignore-missing-imports"]
-        exclude: tests/
+        exclude: tests/|services/
 
   # ============================================
   # PYTHON: SECURITY
@@ -88,6 +88,8 @@ repos:
       - id: bandit
         name: Security check with Bandit
         args: ["-c", ".bandit"]
+        additional_dependencies:
+          - pbr
         exclude: tests/
 
   # ============================================

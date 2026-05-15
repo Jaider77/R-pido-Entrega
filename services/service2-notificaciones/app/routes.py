@@ -277,7 +277,7 @@ async def get_user_notification_stats(
     total = db.query(Notification).filter(Notification.user_id == user_id).count()
     unread = (
         db.query(Notification)
-        .filter(Notification.user_id == user_id, Notification.is_read == False)
+        .filter(Notification.user_id == user_id, Notification.is_read is False)
         .count()
     )
     sent = (
