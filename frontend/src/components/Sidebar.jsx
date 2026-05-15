@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Sidebar() {
   return (
     <aside
@@ -12,44 +14,44 @@ export default function Sidebar() {
       <nav>
         <ul style={{ listStyle: "none" }}>
           <li>
-            <a
-              href="/"
+            <Link
+              to="/"
               style={{ textDecoration: "none", color: "var(--primary)" }}
             >
-              🏠 Inicio
-            </a>
+              Inicio
+            </Link>
           </li>
           <li>
-            <a
-              href="/dashboard"
+            <Link
+              to="/dashboard"
               style={{ textDecoration: "none", color: "var(--primary)" }}
             >
-              📊 Dashboard
-            </a>
+              Panel de Control
+            </Link>
           </li>
           <li>
-            <a
-              href="/rutas"
+            <Link
+              to="/rutas"
               style={{ textDecoration: "none", color: "var(--primary)" }}
             >
-              🗺️ Rutas
-            </a>
+              Rutas
+            </Link>
           </li>
           <li>
-            <a
-              href="/notificaciones"
+            <Link
+              to="/notificaciones"
               style={{ textDecoration: "none", color: "var(--primary)" }}
             >
-              🔔 Notificaciones
-            </a>
+              Notificaciones
+            </Link>
           </li>
           <li>
-            <a
-              href="/profile"
+            <Link
+              to="/profile"
               style={{ textDecoration: "none", color: "var(--primary)" }}
             >
-              👤 Perfil
-            </a>
+              Perfil
+            </Link>
           </li>
         </ul>
       </nav>

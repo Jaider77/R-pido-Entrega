@@ -1,7 +1,7 @@
 export default function Home() {
   return (
     <div className="card">
-      <h1>Welcome to Rápido-Entrega</h1>
+      <h1>Bienvenidos a Rápido-Entrega</h1>
       <p>
         Plataforma logística de microservicios para gestión de repartidores y
         rutas
@@ -10,7 +10,7 @@ export default function Home() {
         className="btn-primary"
         onClick={() => (window.location.href = "/login")}
       >
-        Get Started
+        Iniciar Sesión
       </button>
     </div>
   );

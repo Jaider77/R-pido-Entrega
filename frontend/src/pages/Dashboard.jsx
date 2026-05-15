@@ -5,15 +5,15 @@ export default function Dashboard() {
 
   return (
     <div className="card">
-      <h2>Dashboard</h2>
+      <h2>Panel de Control</h2>
       {user ? (
         <>
-          <p>Welcome, {user.full_name}!</p>
+          <p>Bienvenido, {user.full_name}!</p>
           <p>Email: {user.email}</p>
-          <p>Role: {user.role}</p>
+          <p>Rol: {user.role}</p>
         </>
       ) : (
-        <p>Please log in to access the dashboard</p>
+        <p>Inicie sesión para acceder al panel de control</p>
       )}
     </div>
   );

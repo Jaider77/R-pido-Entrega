@@ -27,13 +27,13 @@ export default function Header() {
               textDecoration: "none",
             }}
           >
-            Home
+            Inicio
           </a>
           <a
             href="/dashboard"
             style={{ color: "white", textDecoration: "none" }}
           >
-            Dashboard
+            Panel de Control
           </a>
         </nav>
       </div>

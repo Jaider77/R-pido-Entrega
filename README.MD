@@ -223,7 +223,7 @@ docker-compose up --build
 
 | Servicio | URL local |
 |---|---|
-| Frontend | <http://localhost:3003> |
+| Frontend | <http://localhost:3001> |
 | API Gateway | <http://localhost:80> |
 | Auth | <http://localhost:80/api/auth/> |
 | Rutas (ms1) | <http://localhost:80/api/rutas/> |
