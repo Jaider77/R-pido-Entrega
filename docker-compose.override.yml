@@ -1,0 +1,86 @@
+# Override para desarrollo local
+# Se usa automáticamente cuando ejecutas: docker-compose up
+
+services:
+  # Bases de datos con puertos expuestos para debugging
+  db-auth:
+    ports:
+      - "5432:5432"
+
+  db-rutas:
+    ports:
+      - "5433:5432"
+
+  db-notificaciones:
+    ports:
+      - "5434:5432"
+
+  db-service3:
+    ports:
+      - "5435:5432"
+
+  # Redis con puerto expuesto
+  redis:
+    ports:
+      - "6379:6379"
+
+  # RabbitMQ con management UI
+  rabbitmq:
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # Microservicios con live-reload
+  auth-service:
+    environment:
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./services/authentication:/app
+    command: >
+      bash -c "pip install --user --no-cache-dir -r requirements.txt &&
+               uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  rutas-service:
+    environment:
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./services/service1-rutas:/app
+    command: >
+      bash -c "pip install --user --no-cache-dir -r requirements.txt &&
+               uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  notificaciones-service:
+    environment:
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./services/service2-notificaciones:/app
+    command: >
+      bash -c "pip install --user --no-cache-dir -r requirements.txt &&
+               uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  service3:
+    environment:
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./services/service3:/app
+    command: >
+      bash -c "pip install --user --no-cache-dir -r requirements.txt &&
+               uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  # Frontend con hot-reload
+  frontend:
+    environment:
+      REACT_APP_API_URL: http://localhost/api
+      NODE_ENV: development
+      WDS_SOCKET_PORT: 3003
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.js:/app/vite.config.js
+    command: >
+      sh -c "npm install && npm start"

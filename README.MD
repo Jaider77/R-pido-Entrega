@@ -3,7 +3,6 @@
 > Plataforma logística para la gestión de repartidores, rutas y notificaciones en tiempo real, construida sobre una arquitectura de microservicios con CI/CD automatizado.
 Este repositorio contiene la infraestructura automatizada para la plataforma logística de Rápido-Entrega S.A., diseñada para gestionar repartidores, rutas y notificaciones en tiempo real. La arquitectura sigue un modelo de microservicios robusto, priorizando la estabilidad mediante procesos de CI/CD.
 
-
 ## Arquitectura del Sistema
 
 ```
@@ -38,7 +37,6 @@ Este repositorio contiene la infraestructura automatizada para la plataforma log
 ---
 
 ## 📂 Estructura de carpetas
-
 
 ```
 rapido-entrega/
@@ -151,6 +149,7 @@ git push origin main
 ```
 
 > ⚡ Al hacer `git commit`, los hooks de **pre-commit** se ejecutan automáticamente:
+>
 > - `ruff check` — linting del código Python
 > - `ruff format` — formateo automático
 > - `pytest` — ejecución de pruebas unitarias
@@ -224,12 +223,12 @@ docker-compose up --build
 
 | Servicio | URL local |
 |---|---|
-| Frontend | http://localhost:3000 |
-| API Gateway | http://localhost:80 |
-| Auth | http://localhost:80/api/auth/ |
-| Rutas (ms1) | http://localhost:80/api/rutas/ |
-| Notificaciones (ms2) | http://localhost:80/api/notificaciones/ |
-| Servicio 3 (ms3) | http://localhost:80/api/service3/ |
+| Frontend | <http://localhost:3003> |
+| API Gateway | <http://localhost:80> |
+| Auth | <http://localhost:80/api/auth/> |
+| Rutas (ms1) | <http://localhost:80/api/rutas/> |
+| Notificaciones (ms2) | <http://localhost:80/api/notificaciones/> |
+| Servicio 3 (ms3) | <http://localhost:80/api/service3/> |
 
 ### Ejecutar pruebas manualmente
 

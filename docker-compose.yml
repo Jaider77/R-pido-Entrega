@@ -1,0 +1,288 @@
+services:
+  # ============================================
+  # DATABASES
+  # ============================================
+
+  db-auth:
+    image: postgres:15-alpine
+    container_name: db-auth
+    environment:
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+      POSTGRES_DB: auth_db
+    volumes:
+      - db_auth_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - rapido-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-rutas:
+    image: postgres:15-alpine
+    container_name: db-rutas
+    environment:
+      POSTGRES_USER: rutas_user
+      POSTGRES_PASSWORD: rutas_password
+      POSTGRES_DB: rutas_db
+    volumes:
+      - db_rutas_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - rapido-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rutas_user -d rutas_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-notificaciones:
+    image: postgres:15-alpine
+    container_name: db-notificaciones
+    environment:
+      POSTGRES_USER: notif_user
+      POSTGRES_PASSWORD: notif_password
+      POSTGRES_DB: notificaciones_db
+    volumes:
+      - db_notificaciones_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    networks:
+      - rapido-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notif_user -d notificaciones_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-service3:
+    image: postgres:15-alpine
+    container_name: db-service3
+    environment:
+      POSTGRES_USER: service3_user
+      POSTGRES_PASSWORD: service3_password
+      POSTGRES_DB: service3_db
+    volumes:
+      - db_service3_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    networks:
+      - rapido-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U service3_user -d service3_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # CACHE (Redis)
+  # ============================================
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rapido-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # MESSAGE BROKER (RabbitMQ)
+  # ============================================
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq-broker
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - rapido-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # MICROSERVICIOS
+  # ============================================
+
+  auth-service:
+    build:
+      context: ./services/authentication
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://auth_user:auth_password@db-auth:5432/auth_db
+      REDIS_URL: redis://redis-cache:6379/0
+      JWT_SECRET: your-secret-key-change-in-production
+      SERVICE_NAME: authentication
+    depends_on:
+      db-auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rapido-network
+    restart: unless-stopped
+
+  rutas-service:
+    build:
+      context: ./services/service1-rutas
+      dockerfile: Dockerfile
+    container_name: rutas-service
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql://rutas_user:rutas_password@db-rutas:5432/rutas_db
+      REDIS_URL: redis://redis-cache:6379/1
+      AUTH_SERVICE_URL: http://auth-service:8000
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq-broker:5672/
+      SERVICE_NAME: rutas
+    depends_on:
+      db-rutas:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - rapido-network
+    restart: unless-stopped
+
+  notificaciones-service:
+    build:
+      context: ./services/service2-notificaciones
+      dockerfile: Dockerfile
+    container_name: notificaciones-service
+    ports:
+      - "8003:8000"
+    environment:
+      DATABASE_URL: postgresql://notif_user:notif_password@db-notificaciones:5432/notificaciones_db
+      REDIS_URL: redis://redis-cache:6379/2
+      AUTH_SERVICE_URL: http://auth-service:8000
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq-broker:5672/
+      SERVICE_NAME: notificaciones
+    depends_on:
+      db-notificaciones:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - rapido-network
+    restart: unless-stopped
+
+  service3:
+    build:
+      context: ./services/service3
+      dockerfile: Dockerfile
+    container_name: service3
+    ports:
+      - "8004:8000"
+    environment:
+      DATABASE_URL: postgresql://service3_user:service3_password@db-service3:5432/service3_db
+      REDIS_URL: redis://redis-cache:6379/3
+      AUTH_SERVICE_URL: http://auth-service:8000
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq-broker:5672/
+      SERVICE_NAME: service3
+    depends_on:
+      db-service3:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - rapido-network
+    restart: unless-stopped
+
+  # ============================================
+  # API GATEWAY (Nginx)
+  # ============================================
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - rutas-service
+      - notificaciones-service
+      - service3
+    networks:
+      - rapido-network
+    restart: unless-stopped
+
+  # ============================================
+  # FRONTEND
+  # ============================================
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3001:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost/api
+      NODE_ENV: development
+    depends_on:
+      - api-gateway
+    networks:
+      - rapido-network
+    restart: unless-stopped
+
+# ============================================
+# VOLUMES
+# ============================================
+
+volumes:
+  db_auth_data:
+  db_rutas_data:
+  db_notificaciones_data:
+  db_service3_data:
+  redis_data:
+  rabbitmq_data:
+
+# ============================================
+# NETWORKS
+# ============================================
+
+networks:
+  rapido-network:
+    driver: bridge
