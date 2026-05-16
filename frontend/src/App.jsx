@@ -1,5 +1,7 @@
 import { Toaster } from "react-hot-toast";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import useAuthStore from "./stores/authStore";
 import "./App.css";
 
 // Pages
@@ -15,8 +17,14 @@ import NotFound from "./pages/NotFound";
 // Layouts
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
+  const init = useAuthStore((s) => s.init);
+
+  useEffect(() => {
+    init();
+  }, [init]);
   return (
     <Router>
       <div className="app">
@@ -29,10 +37,38 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/rutas" element={<Rutas />} />
-              <Route path="/notificaciones" element={<Notificaciones />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/rutas"
+                element={
+                  <ProtectedRoute>
+                    <Rutas />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notificaciones"
+                element={
+                  <ProtectedRoute>
+                    <Notificaciones />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

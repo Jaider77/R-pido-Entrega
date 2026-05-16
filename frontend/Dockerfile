@@ -11,6 +11,11 @@ RUN npm install
 
 # Copy application
 COPY . .
+
+# Build-time environment variables for Vite
+ARG VITE_API_URL=http://localhost:8080/api
+ENV VITE_API_URL=${VITE_API_URL}
+
 RUN cp .env.example .env || true
 
 # Build

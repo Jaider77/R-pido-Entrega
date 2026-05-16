@@ -1,16 +1,25 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const { register, isLoading, error } = useAuthStore();
+  const { register, login, isLoading, error } = useAuthStore();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await register(email, password, fullName);
+    const success = await register(email, password, fullName);
+    if (success) {
+      const logged = await login(email, password);
+      if (logged) {
+        navigate("/dashboard", { replace: true });
+      } else {
+        navigate("/login", { replace: true });
+      }
+    }
   };
 
   return (
@@ -37,8 +46,10 @@ export default function Register() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          minLength={8}
           required
         />
+        <small>La contraseña debe tener al menos 8 caracteres.</small>
         <button type="submit" className="btn-primary" disabled={isLoading}>
           {isLoading ? "Registrando..." : "Crear cuenta"}
         </button>

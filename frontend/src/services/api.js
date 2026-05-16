@@ -18,16 +18,42 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle responses
+// Handle responses and attempt refresh on 401
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest?._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem("refresh_token");
+      if (refreshToken) {
+        try {
+          const resp = await axios.post(`${API_URL}/auth/refresh-token`, {
+            refresh_token: refreshToken,
+          });
+
+          const newAccess = resp.data.access_token;
+          const newRefresh = resp.data.refresh_token;
+          if (newAccess) {
+            localStorage.setItem("token", newAccess);
+            if (newRefresh) localStorage.setItem("refresh_token", newRefresh);
+            originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+            return apiClient(originalRequest);
+          }
+        } catch (err) {
+          // refresh failed
+        }
+      }
+
+      // fallback: clear and redirect to login
       localStorage.removeItem("token");
+      localStorage.removeItem("refresh_token");
       window.location.href = "/login";
     }
+
     return Promise.reject(error);
-  },
+  }
 );
 
 export default apiClient;

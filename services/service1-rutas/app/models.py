@@ -5,7 +5,7 @@ SQLAlchemy models for routes service
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Float, Integer, String, Text
 from sqlalchemy.orm import declarative_base
@@ -36,7 +36,7 @@ class Repartidor(Base):
     license_plate = Column(String(20), nullable=True, unique=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
-    is_active = Column(Integer, default=1, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

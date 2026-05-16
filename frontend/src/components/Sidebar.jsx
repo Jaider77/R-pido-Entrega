@@ -1,6 +1,13 @@
 import { Link } from "react-router-dom";
+import useAuthStore from "../stores/authStore";
 
 export default function Sidebar() {
+  const token = useAuthStore((s) => s.token);
+
+  if (!token) {
+    return null;
+  }
+
   return (
     <aside
       className="sidebar"

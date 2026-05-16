@@ -3,17 +3,20 @@ Authentication routes
 """
 
 import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
 from app.config import settings
 from app.database import get_db
-from app.models import User
+from app.models import RefreshToken, User
 from app.schemas import (
     LoginRequest,
+    LogoutRequest,
     PasswordChangeRequest,
     PasswordResetConfirm,
     PasswordResetRequest,
+    TokenRefreshRequest,
     TokenResponse,
     UserCreate,
     UserResponse,
@@ -54,6 +57,21 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     return encoded_jwt
+
+
+def create_refresh_token(db, user_id: int) -> str:
+    """Create and persist refresh token"""
+    token = secrets.token_urlsafe(64)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    refresh_token = RefreshToken(
+        user_id=user_id,
+        token=token,
+        expires_at=expires_at,
+    )
+    db.add(refresh_token)
+    db.commit()
+    db.refresh(refresh_token)
+    return refresh_token.token
 
 
 def verify_token(token: str) -> dict:
@@ -139,11 +157,12 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
         )
 
     # Create token
-    access_token = create_access_token(data={"sub": str(user.id)})
+    access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
+    refresh_token = create_refresh_token(db, user.id)
     expires_in = settings.jwt_expiration_hours * 3600
-
     return TokenResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",  # nosec B106
         expires_in=expires_in,
         user=UserResponse.model_validate(user),
@@ -157,6 +176,68 @@ async def verify_token_endpoint(
     """Verify JWT token and return decoded payload"""
     payload = verify_token(credentials.credentials)
     return {"valid": True, "payload": payload}
+
+
+@router.post("/refresh-token", response_model=TokenResponse)
+async def refresh_token(
+    token_request: TokenRefreshRequest,
+    db: Session = Depends(get_db),
+):
+    """Refresh access token using a refresh token"""
+    refresh_token_record = (
+        db.query(RefreshToken).filter(RefreshToken.token == token_request.refresh_token).first()
+    )
+    if (
+        not refresh_token_record
+        or refresh_token_record.is_revoked
+        or refresh_token_record.expires_at < datetime.now(timezone.utc)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+
+    user = db.query(User).filter(User.id == refresh_token_record.user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
+
+    refresh_token_record.is_revoked = True
+    db.commit()
+
+    new_access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
+    new_refresh_token = create_refresh_token(db, user.id)
+    expires_in = settings.jwt_expiration_hours * 3600
+
+    return TokenResponse(
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
+        token_type="bearer",
+        expires_in=expires_in,
+        user=UserResponse.model_validate(user),
+    )
+
+
+@router.post("/logout")
+async def logout(
+    request: LogoutRequest,
+    db: Session = Depends(get_db),
+):
+    """Revoke a refresh token and log out"""
+    refresh_token_record = (
+        db.query(RefreshToken).filter(RefreshToken.token == request.refresh_token).first()
+    )
+    if not refresh_token_record or refresh_token_record.is_revoked:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Refresh token not found or already revoked",
+        )
+
+    refresh_token_record.is_revoked = True
+    db.commit()
+    return {"message": "Logged out successfully"}
 
 
 @router.get("/me", response_model=UserResponse)

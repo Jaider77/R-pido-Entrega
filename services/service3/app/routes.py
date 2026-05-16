@@ -47,12 +47,11 @@ async def verify_auth_token(credentials: HTTPAuthorizationCredentials = Depends(
 @router.post("/items", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_item(
     item: ItemCreate,
-    owner_id: int,
     db: Session = Depends(get_db),
     auth: dict = Depends(verify_auth_token),
 ):
     """Create a new item"""
-    db_item = Item(**item.dict(), owner_id=owner_id)
+    db_item = Item(**item.dict())
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
@@ -141,12 +140,11 @@ async def delete_item(
 @router.post("/activities", response_model=ActivityResponse, status_code=status.HTTP_201_CREATED)
 async def create_activity(
     activity: ActivityCreate,
-    user_id: int,
     db: Session = Depends(get_db),
     auth: dict = Depends(verify_auth_token),
 ):
     """Create activity log entry"""
-    db_activity = Activity(**activity.dict(), user_id=user_id)
+    db_activity = Activity(**activity.dict())
     db.add(db_activity)
     db.commit()
     db.refresh(db_activity)

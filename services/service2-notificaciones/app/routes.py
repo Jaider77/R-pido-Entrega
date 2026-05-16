@@ -9,7 +9,7 @@ from typing import List, Optional
 import httpx
 from app.config import settings
 from app.database import get_db
-from app.models import Notification, NotificationStatus, NotificationTemplate
+from app.models import Notification, NotificationLog, NotificationStatus, NotificationTemplate
 from app.schemas import (
     NotificationCreate,
     NotificationResponse,
@@ -50,6 +50,14 @@ async def verify_auth_token(credentials: HTTPAuthorizationCredentials = Depends(
         )
 
 
+def render_template(template: str, context: dict) -> str:
+    """Render basic notification template using context values"""
+    try:
+        return template.format(**context)
+    except Exception:
+        return template
+
+
 # ============================================
 # NOTIFICATION ENDPOINTS
 # ============================================
@@ -72,6 +80,16 @@ async def create_notification(
     db_notification.sent_at = datetime.utcnow()
     db.commit()
     db.refresh(db_notification)
+
+    # Create audit log for the notification
+    notification_log = NotificationLog(
+        notification_id=db_notification.id,
+        action="sent",
+        details=f"Notification sent to {db_notification.recipient}",
+    )
+    db.add(notification_log)
+    db.commit()
+
     logger.info(
         "Notification %s queued as sent for recipient %s",
         db_notification.id,
@@ -243,12 +261,12 @@ async def send_bulk_notifications(
         if not template:
             continue
 
-        # Create notification
+        # Create notification using the chosen template and context
         notification = Notification(
             user_id=notif_request.user_id,
             notification_type=template.notification_type,
-            title=template.title_template,
-            message=template.message_template,
+            title=render_template(template.title_template, notif_request.context),
+            message=render_template(template.message_template, notif_request.context),
             recipient=notif_request.recipient,
             status=NotificationStatus.PENDING,
         )
@@ -256,6 +274,17 @@ async def send_bulk_notifications(
         created_notifications.append(notification)
 
     db.commit()
+
+    # Create audit logs for queued notifications
+    for notification in created_notifications:
+        log = NotificationLog(
+            notification_id=notification.id,
+            action="queued",
+            details=f"Bulk notification queued for {notification.recipient}",
+        )
+        db.add(log)
+    db.commit()
+
     return {
         "sent": len(created_notifications),
         "message": "Bulk notifications queued for sending",

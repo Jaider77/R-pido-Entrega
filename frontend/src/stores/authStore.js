@@ -12,9 +12,13 @@ const useAuthStore = create((set) => ({
     try {
       const { data } = await authService.login({ email, password });
       localStorage.setItem("token", data.access_token);
+      if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
       set({ token: data.access_token, user: data.user });
+      return true;
     } catch (error) {
-      set({ error: error.response?.data?.detail || "Login failed" });
+      const detail = error.response?.data?.detail;
+      set({ error: Array.isArray(detail) ? detail.map((item) => item.msg).join(". ") : detail || "Login failed" });
+      return false;
     } finally {
       set({ isLoading: false });
     }
@@ -23,21 +27,23 @@ const useAuthStore = create((set) => ({
   register: async (email, password, fullName) => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await authService.register({
+      await authService.register({
         email,
         password,
         full_name: fullName,
       });
-      set({ user: data });
+      return true;
     } catch (error) {
-      set({ error: error.response?.data?.detail || "Registration failed" });
+      const detail = error.response?.data?.detail;
+      set({ error: Array.isArray(detail) ? detail.map((item) => item.msg).join(". ") : detail || "Registration failed" });
+      return false;
     } finally {
       set({ isLoading: false });
     }
   },
 
-  logout: () => {
-    localStorage.removeItem("token");
+  logout: async () => {
+    await authService.logout();
     set({ user: null, token: null });
   },
 
@@ -47,6 +53,20 @@ const useAuthStore = create((set) => ({
       set({ user: data });
     } catch (error) {
       set({ user: null, token: null });
+    }
+  },
+  // Initialize store from localStorage
+  init: async () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const { data } = await authService.getMe();
+        set({ user: data, token });
+      } catch (err) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refresh_token");
+        set({ user: null, token: null });
+      }
     }
   },
 }));

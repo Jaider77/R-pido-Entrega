@@ -19,7 +19,7 @@ class ItemBase(BaseModel):
 class ItemCreate(ItemBase):
     """Item creation schema"""
 
-    pass
+    owner_id: int
 
 
 class ItemUpdate(BaseModel):
@@ -52,6 +52,7 @@ class ActivityCreate(ActivityBase):
     """Activity creation schema"""
 
     item_id: int
+    user_id: int
 
 
 class ActivityResponse(ActivityBase):

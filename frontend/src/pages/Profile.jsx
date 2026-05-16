@@ -1,8 +1,26 @@
+import useAuthStore from "../stores/authStore";
+
 export default function Profile() {
+  const { user } = useAuthStore();
+
   return (
-    <div>
+    <div className="card">
       <h1>Perfil</h1>
-      <p>Esta es la página del perfil del usuario.</p>
+      {user ? (
+        <>
+          <p>
+            <strong>Nombre:</strong> {user.full_name}
+          </p>
+          <p>
+            <strong>Email:</strong> {user.email}
+          </p>
+          <p>
+            <strong>Rol:</strong> {user.role}
+          </p>
+        </>
+      ) : (
+        <p>Inicie sesión para ver su perfil.</p>
+      )}
     </div>
   );
 }

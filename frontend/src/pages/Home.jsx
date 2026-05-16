@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Home() {
   return (
     <div className="card">
@@ -6,12 +8,9 @@ export default function Home() {
         Plataforma logística de microservicios para gestión de repartidores y
         rutas
       </p>
-      <button
-        className="btn-primary"
-        onClick={() => (window.location.href = "/login")}
-      >
+      <Link to="/login" className="btn-primary">
         Iniciar Sesión
-      </button>
+      </Link>
     </div>
   );
 }

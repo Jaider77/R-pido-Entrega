@@ -4,8 +4,18 @@ export const authService = {
   register: (data) => apiClient.post("/auth/register", data),
   login: (data) => apiClient.post("/auth/login", data),
   getMe: () => apiClient.get("/auth/me"),
-  logout: () => {
-    localStorage.removeItem("token");
+  logout: async () => {
+    try {
+      const refreshToken = localStorage.getItem("refresh_token");
+      if (refreshToken) {
+        await apiClient.post("/auth/logout", { refresh_token: refreshToken });
+      }
+    } catch (err) {
+      // ignore errors on logout
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refresh_token");
+    }
   },
 };
 

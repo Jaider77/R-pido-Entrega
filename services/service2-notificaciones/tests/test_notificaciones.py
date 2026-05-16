@@ -6,6 +6,7 @@ import pytest
 from app.database import get_db
 from app.main import app
 from app.models import Base
+from app.routes import verify_auth_token
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -29,6 +30,7 @@ def override_get_db():
 
 
 app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[verify_auth_token] = lambda: {"sub": 1}
 
 client = TestClient(app)
 
@@ -66,7 +68,7 @@ def test_create_notification():
         },
         headers={"Authorization": MOCK_TOKEN},
     )
-    assert response.status_code in [201, 401]
+    assert response.status_code == 201
 
 
 def test_create_notification_template():
@@ -81,7 +83,7 @@ def test_create_notification_template():
         },
         headers={"Authorization": MOCK_TOKEN},
     )
-    assert response.status_code in [201, 401]
+    assert response.status_code == 201
 
 
 def test_get_user_notifications():
@@ -90,7 +92,7 @@ def test_get_user_notifications():
         "/api/notificaciones/user/1",
         headers={"Authorization": MOCK_TOKEN},
     )
-    assert response.status_code in [200, 401]
+    assert response.status_code == 200
 
 
 def test_get_user_stats():
@@ -99,4 +101,4 @@ def test_get_user_stats():
         "/api/notificaciones/stats/user/1",
         headers={"Authorization": MOCK_TOKEN},
     )
-    assert response.status_code in [200, 401]
+    assert response.status_code == 200

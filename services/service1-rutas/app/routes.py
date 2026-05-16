@@ -140,6 +140,13 @@ async def create_ruta(
     auth: dict = Depends(verify_auth_token),
 ):
     """Create a new route/delivery"""
+    db_repartidor = db.query(Repartidor).filter(Repartidor.id == ruta.repartidor_id).first()
+    if not db_repartidor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Repartidor not found",
+        )
+
     # Calculate distance
     origin = (ruta.origin_latitude, ruta.origin_longitude)
     destination = (ruta.destination_latitude, ruta.destination_longitude)
