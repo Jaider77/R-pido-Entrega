@@ -11,6 +11,7 @@ RUN npm install
 
 # Copy application
 COPY . .
+RUN cp .env.example .env || true
 
 # Build
 RUN npm run build

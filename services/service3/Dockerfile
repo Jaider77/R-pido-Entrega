@@ -26,7 +26,7 @@ COPY . .
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health')" || exit 1
 
 # Expose port
 EXPOSE 8000
