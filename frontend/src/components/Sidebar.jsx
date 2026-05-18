@@ -3,6 +3,7 @@ import useAuthStore from "../stores/authStore";
 
 export default function Sidebar() {
   const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
 
   if (!token) {
     return null;
@@ -60,6 +61,16 @@ export default function Sidebar() {
               Perfil
             </Link>
           </li>
+          {user?.role === "repartidor" && (
+            <li>
+              <Link
+                to="/repartidor-profile"
+                style={{ textDecoration: "none", color: "var(--primary)" }}
+              >
+                Perfil repartidor
+              </Link>
+            </li>
+          )}
         </ul>
       </nav>
     </aside>

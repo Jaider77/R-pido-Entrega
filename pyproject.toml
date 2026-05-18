@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "rapido-entrega"
 version = "1.0.0"
 description = "Plataforma logística de microservicios para Rápido-Entrega S.A."
-readme = "README.md"
+readme = "README.MD"
 authors = [
     { name = "Equipo Desarrollo", email = "dev@rapido-entrega.com" }
 ]
@@ -53,8 +53,7 @@ prod = [
     "prometheus-client>=0.19",
 ]
 
-[tool.setuptools.packages.find]
-where = ["services"]
-include = ["auth*"]
+# The services are separate FastAPI applications and are installed independently via their own requirements.txt files.
+# Root packaging should not attempt to collect nested service app packages with duplicate package names.
 
 # Configuración de pytest, black, ruff, mypy y coverage igual que la que ya definiste

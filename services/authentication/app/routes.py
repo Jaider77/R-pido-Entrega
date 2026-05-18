@@ -24,6 +24,7 @@ from app.schemas import (
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
+from pydantic import EmailStr
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -178,6 +179,22 @@ async def verify_token_endpoint(
     return {"valid": True, "payload": payload}
 
 
+@router.get("/users/by-email", response_model=UserResponse)
+async def get_user_by_email(
+    email: EmailStr,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get a user by email address"""
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    return user
+
+
 @router.post("/refresh-token", response_model=TokenResponse)
 async def refresh_token(
     token_request: TokenRefreshRequest,
@@ -187,10 +204,18 @@ async def refresh_token(
     refresh_token_record = (
         db.query(RefreshToken).filter(RefreshToken.token == token_request.refresh_token).first()
     )
+
+    def is_expired(expiration):
+        if expiration is None:
+            return True
+        if expiration.tzinfo is None:
+            expiration = expiration.replace(tzinfo=timezone.utc)
+        return expiration < datetime.now(timezone.utc)
+
     if (
         not refresh_token_record
         or refresh_token_record.is_revoked
-        or refresh_token_record.expires_at < datetime.now(timezone.utc)
+        or is_expired(refresh_token_record.expires_at)
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -210,11 +235,12 @@ async def refresh_token(
     new_access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
     new_refresh_token = create_refresh_token(db, user.id)
     expires_in = settings.jwt_expiration_hours * 3600
+    token_type = "bearer"  # nosec B105
 
     return TokenResponse(
         access_token=new_access_token,
         refresh_token=new_refresh_token,
-        token_type="bearer",
+        token_type=token_type,
         expires_in=expires_in,
         user=UserResponse.model_validate(user),
     )

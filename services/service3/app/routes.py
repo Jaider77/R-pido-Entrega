@@ -31,7 +31,13 @@ async def verify_auth_token(credentials: HTTPAuthorizationCredentials = Depends(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token",
                 )
-            return response.json()
+            payload = response.json().get("payload")
+            if not payload:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token payload",
+                )
+            return payload
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -51,7 +57,7 @@ async def create_item(
     auth: dict = Depends(verify_auth_token),
 ):
     """Create a new item"""
-    db_item = Item(**item.dict())
+    db_item = Item(**item.model_dump())
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
@@ -106,7 +112,7 @@ async def update_item(
             detail="Item not found",
         )
 
-    for field, value in item_update.dict(exclude_unset=True).items():
+    for field, value in item_update.model_dump(exclude_unset=True).items():
         setattr(db_item, field, value)
 
     db.commit()
@@ -144,7 +150,7 @@ async def create_activity(
     auth: dict = Depends(verify_auth_token),
 ):
     """Create activity log entry"""
-    db_activity = Activity(**activity.dict())
+    db_activity = Activity(**activity.model_dump())
     db.add(db_activity)
     db.commit()
     db.refresh(db_activity)

@@ -20,13 +20,51 @@ export default function Dashboard() {
   const fetchStats = async () => {
     setLoading(true);
     try {
+      let repartidorId = user.id;
+      if (user.role === "repartidor") {
+        try {
+          const profileResponse = await rutasService.getMyRepartidorProfile();
+          repartidorId = profileResponse.data.id;
+        } catch (error) {
+          if (error.response?.status === 404) {
+            toast.error(
+              "Debe crear su perfil de repartidor para ver estadísticas de rutas.",
+            );
+            repartidorId = null;
+          } else {
+            throw error;
+          }
+        }
+      }
+
       const [routesResponse, notifsResponse] = await Promise.all([
-        rutasService.getRepartidorStats(user.id),
+        repartidorId
+          ? rutasService.getRepartidorStats(repartidorId)
+          : Promise.resolve({
+              data: {
+                total_deliveries: 0,
+                delivered: 0,
+                in_transit: 0,
+                pending: 0,
+                success_rate: 0,
+              },
+            }),
         notificacionesService.getUserStats(user.id),
       ]);
+      let notificationData = notifsResponse.data;
+      if ((!notificationData || notificationData.total === 0) && user.email) {
+        const fallbackResponse = await notificacionesService.getUserStats(
+          user.id,
+          {
+            recipient: user.email,
+          },
+        );
+        notificationData = fallbackResponse.data;
+      }
       setRouteStats(routesResponse.data);
-      setNotificationStats(notifsResponse.data);
+      setNotificationStats(notificationData);
     } catch (error) {
+      console.error(error);
       toast.error("No se pudieron cargar las estadísticas.");
     } finally {
       setLoading(false);
@@ -44,8 +82,18 @@ export default function Dashboard() {
             <p>Resumen de tu actividad en Rápido-Entrega.</p>
           </div>
           <div className="section-actions">
-            <button className="btn-secondary" onClick={() => handleNavigate("/rutas")}>Ver rutas</button>
-            <button className="btn-secondary" onClick={() => handleNavigate("/notificaciones")}>Ver notificaciones</button>
+            <button
+              className="btn-secondary"
+              onClick={() => handleNavigate("/rutas")}
+            >
+              Ver rutas
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => handleNavigate("/notificaciones")}
+            >
+              Ver notificaciones
+            </button>
           </div>
         </div>
 
@@ -68,7 +116,9 @@ export default function Dashboard() {
               <div className="stat-card">
                 <strong>Notificaciones</strong>
                 <span>{notificationStats?.total ?? "-"}</span>
-                <p style={{ color: "#4b5563" }}>Mensajes enviados o recibidos</p>
+                <p style={{ color: "#4b5563" }}>
+                  Mensajes enviados o recibidos
+                </p>
               </div>
             </div>
 
@@ -93,8 +143,12 @@ export default function Dashboard() {
             <div className="stats-grid" style={{ marginTop: "1rem" }}>
               <div className="stat-card">
                 <strong>Ratio de éxito</strong>
-                <span>{routeStats ? `${routeStats.success_rate.toFixed(1)}%` : "-"}</span>
-                <p style={{ color: "#4b5563" }}>Porcentaje de entregas completadas</p>
+                <span>
+                  {routeStats ? `${routeStats.success_rate.toFixed(1)}%` : "-"}
+                </span>
+                <p style={{ color: "#4b5563" }}>
+                  Porcentaje de entregas completadas
+                </p>
               </div>
               <div className="stat-card">
                 <strong>En cola</strong>
@@ -109,7 +163,11 @@ export default function Dashboard() {
             </div>
 
             <div style={{ marginTop: "1.5rem" }}>
-              <button className="btn-primary" onClick={fetchStats} disabled={loading}>
+              <button
+                className="btn-primary"
+                onClick={fetchStats}
+                disabled={loading}
+              >
                 {loading ? "Actualizando..." : "Actualizar estadísticas"}
               </button>
             </div>

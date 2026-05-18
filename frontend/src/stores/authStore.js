@@ -12,30 +12,40 @@ const useAuthStore = create((set) => ({
     try {
       const { data } = await authService.login({ email, password });
       localStorage.setItem("token", data.access_token);
-      if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+      if (data.refresh_token)
+        localStorage.setItem("refresh_token", data.refresh_token);
       set({ token: data.access_token, user: data.user });
-      return true;
+      return data.user;
     } catch (error) {
       const detail = error.response?.data?.detail;
-      set({ error: Array.isArray(detail) ? detail.map((item) => item.msg).join(". ") : detail || "Login failed" });
-      return false;
+      set({
+        error: Array.isArray(detail)
+          ? detail.map((item) => item.msg).join(". ")
+          : detail || "Login failed",
+      });
+      return null;
     } finally {
       set({ isLoading: false });
     }
   },
 
-  register: async (email, password, fullName) => {
+  register: async (email, password, fullName, role = "user") => {
     set({ isLoading: true, error: null });
     try {
       await authService.register({
         email,
         password,
         full_name: fullName,
+        role,
       });
       return true;
     } catch (error) {
       const detail = error.response?.data?.detail;
-      set({ error: Array.isArray(detail) ? detail.map((item) => item.msg).join(". ") : detail || "Registration failed" });
+      set({
+        error: Array.isArray(detail)
+          ? detail.map((item) => item.msg).join(". ")
+          : detail || "Registration failed",
+      });
       return false;
     } finally {
       set({ isLoading: false });

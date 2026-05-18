@@ -4,7 +4,7 @@
 
 Este repositorio contiene la infraestructura de la plataforma logística de Rápido-Entrega S.A., implementada como un conjunto de microservicios desacoplados con frontend React/Vite y backend FastAPI.
 
-## ✨ Cambios implementados
+## Cambios implementados
 
 ### Frontend
 
@@ -194,12 +194,12 @@ pytest services/service3/tests/test_service3.py
 
 ## 📌 Rutas principales
 
-- Frontend: http://localhost:3001
-- API Gateway: http://localhost:80
-- Auth: http://localhost:80/api/auth/
-- Rutas: http://localhost:80/api/rutas/
-- Notificaciones: http://localhost:80/api/notificaciones/
-- Service3: http://localhost:80/api/service3/
+- Frontend: <http://localhost:3001>
+- API Gateway: <http://localhost:80>
+- Auth: <http://localhost:80/api/auth/>
+- Rutas: <http://localhost:80/api/rutas/>
+- Notificaciones: <http://localhost:80/api/notificaciones/>
+- Service3: <http://localhost:80/api/service3/>
 
 ## 🤝 Contribución
 

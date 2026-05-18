@@ -2,13 +2,13 @@
 Routes and delivery endpoints
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import httpx
 from app.config import settings
 from app.database import get_db
-from app.models import DeliveryStatus, LocationHistory, Repartidor, Ruta
+from app.models import DeliveryStatus, LocationHistory, Repartidor, Ruta, RutaStatusHistory
 from app.schemas import (
     LocationHistoryResponse,
     LocationUpdate,
@@ -17,6 +17,7 @@ from app.schemas import (
     RepartidorUpdate,
     RutaCreate,
     RutaResponse,
+    RutaStatusHistoryResponse,
     RutaUpdate,
 )
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -42,8 +43,16 @@ async def verify_auth_token(credentials: HTTPAuthorizationCredentials = Depends(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token",
                 )
-            return response.json()
-    except Exception:
+            payload = response.json().get("payload")
+            if not isinstance(payload, dict):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token payload",
+                )
+            # include the raw token so downstream handlers can fetch user info
+            payload["token"] = token
+            return payload
+    except httpx.HTTPError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token verification failed",
@@ -63,29 +72,62 @@ async def create_repartidor(
     db: Session = Depends(get_db),
     auth: dict = Depends(verify_auth_token),
 ):
-    """Create a new repartidor"""
-    existing = db.query(Repartidor).filter(Repartidor.user_id == repartidor.user_id).first()
+    """Create a new repartidor profile for the authenticated repartidor user"""
+    if auth.get("role") != "repartidor":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only users with repartidor role can create a repartidor profile",
+        )
+
+    user_id = auth.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user id in token payload",
+        )
+
+    existing = db.query(Repartidor).filter(Repartidor.user_id == user_id).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Repartidor already exists for this user",
         )
 
-    db_repartidor = Repartidor(**repartidor.dict())
+    db_repartidor = Repartidor(user_id=user_id, **repartidor.model_dump())
     db.add(db_repartidor)
     db.commit()
     db.refresh(db_repartidor)
     return db_repartidor
 
 
-@router.get("/repartidores/{repartidor_id}", response_model=RepartidorResponse)
-async def get_repartidor(
-    repartidor_id: int,
+@router.get("/repartidores/me", response_model=RepartidorResponse)
+async def get_my_repartidor(
     db: Session = Depends(get_db),
     auth: dict = Depends(verify_auth_token),
 ):
-    """Get repartidor by ID"""
-    repartidor = db.query(Repartidor).filter(Repartidor.id == repartidor_id).first()
+    """Get repartidor profile for the authenticated repartidor user"""
+    user_id = auth.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user id in token payload",
+        )
+
+    repartidor = db.query(Repartidor).filter(Repartidor.user_id == user_id).first()
     if not repartidor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -120,7 +162,7 @@ async def update_repartidor(
             detail="Repartidor not found",
         )
 
-    for field, value in repartidor_update.dict(exclude_unset=True).items():
+    for field, value in repartidor_update.model_dump(exclude_unset=True).items():
         setattr(db_repartidor, field, value)
 
     db.commit()
@@ -140,12 +182,30 @@ async def create_ruta(
     auth: dict = Depends(verify_auth_token),
 ):
     """Create a new route/delivery"""
-    db_repartidor = db.query(Repartidor).filter(Repartidor.id == ruta.repartidor_id).first()
-    if not db_repartidor:
+    repartidor_id = ruta.repartidor_id
+    creator_user_id = auth.get("sub")
+    try:
+        creator_user_id = int(creator_user_id)
+    except (TypeError, ValueError):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Repartidor not found",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user id in token payload",
         )
+
+    if repartidor_id is None and auth.get("role") == "repartidor":
+        user_id = creator_user_id
+        repartidor = db.query(Repartidor).filter(Repartidor.user_id == user_id).first()
+        if repartidor:
+            repartidor_id = repartidor.id
+
+    db_repartidor = None
+    if repartidor_id is not None:
+        db_repartidor = db.query(Repartidor).filter(Repartidor.id == repartidor_id).first()
+        if not db_repartidor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Repartidor not found",
+            )
 
     # Calculate distance
     origin = (ruta.origin_latitude, ruta.origin_longitude)
@@ -155,8 +215,13 @@ async def create_ruta(
     # Estimate time (assuming average speed of 30 km/h)
     estimated_time = int((distance_km / 30) * 60)
 
+    route_data = ruta.model_dump(exclude_none=True)
+    if repartidor_id is not None:
+        route_data["repartidor_id"] = repartidor_id
+    route_data["created_by_user_id"] = creator_user_id
+
     db_ruta = Ruta(
-        **ruta.dict(),
+        **route_data,
         estimated_distance_km=distance_km,
         estimated_duration_minutes=estimated_time,
         status=DeliveryStatus.PENDING,
@@ -195,7 +260,27 @@ async def list_rutas(
     """List routes with optional filters"""
     query = db.query(Ruta)
 
-    if repartidor_id:
+    user_role = auth.get("role")
+    if user_role == "repartidor":
+        user_id = auth.get("sub")
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            user_id = None
+        if user_id is not None:
+            repartidor = db.query(Repartidor).filter(Repartidor.user_id == user_id).first()
+            if repartidor:
+                query = query.filter(Ruta.repartidor_id == repartidor.id)
+    elif user_role == "user":
+        user_id = auth.get("sub")
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            user_id = None
+        if user_id is not None:
+            query = query.filter(Ruta.created_by_user_id == user_id)
+
+    if repartidor_id is not None:
         query = query.filter(Ruta.repartidor_id == repartidor_id)
 
     if status:
@@ -219,18 +304,123 @@ async def update_ruta(
             detail="Route not found",
         )
 
-    for field, value in ruta_update.dict(exclude_unset=True).items():
+    previous_status = db_ruta.status
+
+    # Ensure repartidor updating is authorized
+    if auth.get("role") == "repartidor":
+        user_id = auth.get("sub")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload",
+            )
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user id in token payload",
+            )
+
+        current_repartidor = db.query(Repartidor).filter(Repartidor.user_id == user_id).first()
+        if not current_repartidor or current_repartidor.id != db_ruta.repartidor_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No autorizado para actualizar esta ruta",
+            )
+
+    for field, value in ruta_update.model_dump(exclude_unset=True).items():
         setattr(db_ruta, field, value)
+
+    # Prepare status history and last-changed metadata
+    if ruta_update.status and ruta_update.status != previous_status:
+        changed_by_user_id = auth.get("sub")
+        try:
+            changed_by_user_id = int(changed_by_user_id)
+        except (TypeError, ValueError):
+            changed_by_user_id = 0
+
+        changed_by_repartidor_id = None
+        changed_by_name = None
+        changed_by_plate = None
+
+        # If the actor is a repartidor, populate repartidor info
+        if auth.get("role") == "repartidor":
+            if "current_repartidor" not in locals():
+                user_id = auth.get("sub")
+                try:
+                    user_id = int(user_id)
+                except (TypeError, ValueError):
+                    user_id = None
+                if user_id:
+                    current_repartidor = (
+                        db.query(Repartidor).filter(Repartidor.user_id == user_id).first()
+                    )
+            if current_repartidor:
+                changed_by_repartidor_id = current_repartidor.id
+                changed_by_plate = current_repartidor.license_plate
+
+        # Try to fetch full name from auth service when token present
+        token = auth.get("token")
+        if token:
+            try:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(
+                        f"{settings.auth_service_url}/api/auth/me",
+                        headers={"Authorization": f"Bearer {token}"},
+                    )
+                    if resp.status_code == 200:
+                        changed_by_name = resp.json().get("full_name")
+            except httpx.HTTPError:
+                changed_by_name = None
+
+        status_history = RutaStatusHistory(
+            ruta_id=ruta_id,
+            previous_status=previous_status,
+            new_status=ruta_update.status,
+            changed_by_user_id=changed_by_user_id,
+            changed_by_repartidor_id=changed_by_repartidor_id,
+            changed_by_name=changed_by_name,
+            changed_by_plate=changed_by_plate,
+        )
+        db.add(status_history)
+
+        # also store last-changed metadata on the ruta for quick listing
+        db_ruta.last_changed_by_name = changed_by_name
+        db_ruta.last_changed_by_plate = changed_by_plate
 
     # Update timestamps based on status
     if ruta_update.status == DeliveryStatus.IN_TRANSIT and not db_ruta.started_at:
-        db_ruta.started_at = datetime.utcnow()
+        db_ruta.started_at = datetime.now(timezone.utc)
     elif ruta_update.status == DeliveryStatus.DELIVERED and not db_ruta.completed_at:
-        db_ruta.completed_at = datetime.utcnow()
+        db_ruta.completed_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(db_ruta)
     return db_ruta
+
+
+@router.get("/rutas/{ruta_id}/status-history", response_model=List[RutaStatusHistoryResponse])
+async def get_route_status_history(
+    ruta_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(verify_auth_token),
+):
+    """Get the status history for a route"""
+    ruta = db.query(Ruta).filter(Ruta.id == ruta_id).first()
+    if not ruta:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Route not found",
+        )
+
+    history = (
+        db.query(RutaStatusHistory)
+        .filter(RutaStatusHistory.ruta_id == ruta_id)
+        .order_by(RutaStatusHistory.changed_at.desc())
+        .all()
+    )
+    return history
 
 
 # ============================================

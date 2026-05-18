@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { rutasService } from "../services";
+import useAuthStore from "../stores/authStore";
 import toast from "react-hot-toast";
 
 const initialForm = {
@@ -12,20 +13,76 @@ const initialForm = {
   notes: "",
 };
 
+const statusLabels = {
+  pending: "Pendiente",
+  assigned: "Asignada",
+  in_transit: "Recogido",
+  delivered: "Entregado",
+  cancelled: "Cancelada",
+  failed: "Fallida",
+};
+
+const statusColors = {
+  pending: "#6b7280",
+  assigned: "#2563eb",
+  in_transit: "#f59e0b",
+  delivered: "#16a34a",
+  cancelled: "#dc2626",
+  failed: "#ef4444",
+};
+
 export default function Rutas() {
+  const user = useAuthStore((state) => state.user);
   const [routes, setRoutes] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [repartidorProfile, setRepartidorProfile] = useState(null);
+
+  useEffect(() => {
+    if (user?.role === "repartidor") {
+      fetchRepartidorProfile();
+    } else {
+      setRepartidorProfile(null);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (repartidorProfile?.id) {
+      setForm((prev) => ({
+        ...prev,
+        repartidor_id: String(repartidorProfile.id),
+      }));
+    }
+  }, [repartidorProfile]);
 
   useEffect(() => {
     fetchRoutes();
-  }, []);
+  }, [user, repartidorProfile]);
+
+  const fetchRepartidorProfile = async () => {
+    try {
+      const { data } = await rutasService.getMyRepartidorProfile();
+      setRepartidorProfile(data);
+    } catch (error) {
+      if (error.response?.status === 404) {
+        setRepartidorProfile(null);
+      } else {
+        setRepartidorProfile(null);
+        toast.error("No se pudo cargar el perfil de repartidor.");
+      }
+    }
+  };
 
   const fetchRoutes = async () => {
     setLoading(true);
     try {
-      const { data } = await rutasService.listRutas({ limit: 50 });
+      const params = { limit: 50 };
+      if (repartidorProfile?.id) {
+        params.repartidor_id = repartidorProfile.id;
+      }
+      const { data } = await rutasService.listRutas(params);
       setRoutes(data || []);
     } catch (error) {
       toast.error("No se pudo cargar las rutas.");
@@ -44,7 +101,8 @@ export default function Rutas() {
     setSaving(true);
     try {
       const payload = {
-        repartidor_id: Number(form.repartidor_id),
+        repartidor_id:
+          Number(form.repartidor_id) || (repartidorProfile?.id ?? null),
         delivery_id: Number(form.delivery_id),
         origin_latitude: Number(form.origin_latitude),
         origin_longitude: Number(form.origin_longitude),
@@ -57,9 +115,23 @@ export default function Rutas() {
       setForm(initialForm);
       fetchRoutes();
     } catch (error) {
-      toast.error("Error al crear la ruta. Verifique los datos.");
+      const apiMessage = error.response?.data?.detail || error.message;
+      toast.error(`Error al crear la ruta. ${apiMessage}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const changeRouteStatus = async (rutaId, status) => {
+    setActionLoading(true);
+    try {
+      await rutasService.updateRuta(rutaId, { status });
+      toast.success("Estado de la ruta actualizado.");
+      fetchRoutes();
+    } catch (error) {
+      toast.error("No se pudo actualizar el estado de la ruta.");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -72,15 +144,28 @@ export default function Rutas() {
 
       <div className="card">
         <h2>Crear nueva ruta</h2>
+        {user?.role === "repartidor" && !repartidorProfile ? (
+          <p style={{ color: "#dc2626" }}>
+            Aún no tienes un perfil de repartidor. Ve a tu perfil para crear uno
+            y así poder gestionar tus rutas.
+          </p>
+        ) : null}
         <form onSubmit={handleSubmit}>
-          <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+          <div
+            style={{
+              display: "grid",
+              gap: "1rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            }}
+          >
             <input
               type="number"
               name="repartidor_id"
-              placeholder="ID de repartidor"
+              placeholder="ID de repartidor (opcional)"
               value={form.repartidor_id}
               onChange={handleChange}
-              required
+              required={user?.role === "repartidor"}
+              readOnly={user?.role === "repartidor" && !!repartidorProfile?.id}
             />
             <input
               type="number"
@@ -134,16 +219,32 @@ export default function Rutas() {
             onChange={handleChange}
             rows={3}
           />
-          <button type="submit" className="btn-primary" disabled={saving}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={
+              saving || (user?.role === "repartidor" && !repartidorProfile)
+            }
+          >
             {saving ? "Creando ruta..." : "Crear ruta"}
           </button>
         </form>
       </div>
 
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <h2>Listado de rutas</h2>
-          <button className="btn-secondary" onClick={fetchRoutes} disabled={loading}>
+          <button
+            className="btn-secondary"
+            onClick={fetchRoutes}
+            disabled={loading}
+          >
             {loading ? "Actualizando..." : "Actualizar"}
           </button>
         </div>
@@ -156,30 +257,130 @@ export default function Rutas() {
               <thead>
                 <tr>
                   <th style={{ textAlign: "left", padding: "0.75rem" }}>ID</th>
-                  <th style={{ textAlign: "left", padding: "0.75rem" }}>Repartidor</th>
-                  <th style={{ textAlign: "left", padding: "0.75rem" }}>Entrega</th>
-                  <th style={{ textAlign: "left", padding: "0.75rem" }}>Status</th>
-                  <th style={{ textAlign: "left", padding: "0.75rem" }}>Origen</th>
-                  <th style={{ textAlign: "left", padding: "0.75rem" }}>Destino</th>
-                  <th style={{ textAlign: "left", padding: "0.75rem" }}>Creada</th>
+                  <th style={{ textAlign: "left", padding: "0.75rem" }}>
+                    Repartidor
+                  </th>
+                  <th style={{ textAlign: "left", padding: "0.75rem" }}>
+                    Entrega
+                  </th>
+                  <th style={{ textAlign: "left", padding: "0.75rem" }}>
+                    Status
+                  </th>
+                  <th style={{ textAlign: "left", padding: "0.75rem" }}>
+                    Origen
+                  </th>
+                  <th style={{ textAlign: "left", padding: "0.75rem" }}>
+                    Destino
+                  </th>
+                  <th style={{ textAlign: "left", padding: "0.75rem" }}>
+                    Último cambio
+                  </th>
+                  <th style={{ textAlign: "left", padding: "0.75rem" }}>
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {routes.map((ruta) => (
-                  <tr key={ruta.id} style={{ borderTop: "1px solid #e5e7eb" }}>
-                    <td style={{ padding: "0.75rem" }}>{ruta.id}</td>
-                    <td style={{ padding: "0.75rem" }}>{ruta.repartidor_id}</td>
-                    <td style={{ padding: "0.75rem" }}>{ruta.delivery_id}</td>
-                    <td style={{ padding: "0.75rem" }}>{ruta.status}</td>
-                    <td style={{ padding: "0.75rem" }}>
-                      {ruta.origin_latitude}, {ruta.origin_longitude}
-                    </td>
-                    <td style={{ padding: "0.75rem" }}>
-                      {ruta.destination_latitude}, {ruta.destination_longitude}
-                    </td>
-                    <td style={{ padding: "0.75rem" }}>{new Date(ruta.created_at).toLocaleString()}</td>
-                  </tr>
-                ))}
+                {routes.map((ruta) => {
+                  const badgeColor = statusColors[ruta.status] || "#6b7280";
+                  const lastChange = ruta.completed_at
+                    ? new Date(ruta.completed_at).toLocaleString()
+                    : ruta.started_at
+                      ? new Date(ruta.started_at).toLocaleString()
+                      : "-";
+
+                  return (
+                    <tr
+                      key={ruta.id}
+                      style={{ borderTop: "1px solid #e5e7eb" }}
+                    >
+                      <td style={{ padding: "0.75rem" }}>{ruta.id}</td>
+                      <td style={{ padding: "0.75rem" }}>
+                        {ruta.repartidor_id ?? "Sin asignar"}
+                      </td>
+                      <td style={{ padding: "0.75rem" }}>{ruta.delivery_id}</td>
+                      <td style={{ padding: "0.75rem" }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            backgroundColor: badgeColor,
+                            color: "#fff",
+                            padding: "0.35rem 0.75rem",
+                            borderRadius: "999px",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {statusLabels[ruta.status] || ruta.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: "0.75rem" }}>
+                        {ruta.origin_latitude}, {ruta.origin_longitude}
+                      </td>
+                      <td style={{ padding: "0.75rem" }}>
+                        {ruta.destination_latitude},{" "}
+                        {ruta.destination_longitude}
+                      </td>
+                      <td style={{ padding: "0.75rem" }}>
+                        {lastChange}
+                        {ruta.last_changed_by_name && (
+                          <div
+                            style={{
+                              fontSize: "0.85rem",
+                              color: "#374151",
+                              marginTop: "0.25rem",
+                            }}
+                          >
+                            Recogido por: {ruta.last_changed_by_name}{" "}
+                            {ruta.last_changed_by_plate
+                              ? ` / ${ruta.last_changed_by_plate}`
+                              : ""}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: "0.75rem" }}>
+                        {user?.role === "repartidor" &&
+                        ruta.repartidor_id === repartidorProfile?.id ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "0.5rem",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {(ruta.status === "pending" ||
+                              ruta.status === "assigned") && (
+                              <button
+                                className="btn-secondary"
+                                onClick={() =>
+                                  changeRouteStatus(ruta.id, "in_transit")
+                                }
+                                disabled={actionLoading}
+                              >
+                                Marcar recogido
+                              </button>
+                            )}
+                            {ruta.status === "in_transit" && (
+                              <button
+                                className="btn-primary"
+                                onClick={() =>
+                                  changeRouteStatus(ruta.id, "delivered")
+                                }
+                                disabled={actionLoading}
+                              >
+                                Marcar entregado
+                              </button>
+                            )}
+                            {ruta.status === "delivered" && (
+                              <span>✔ Entregado</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ color: "#4b5563" }}>-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

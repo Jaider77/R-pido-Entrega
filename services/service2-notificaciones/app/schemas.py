@@ -39,7 +39,7 @@ class NotificationBase(BaseModel):
 class NotificationCreate(NotificationBase):
     """Notification creation schema"""
 
-    user_id: int
+    user_id: Optional[int] = None
     is_read: bool = False
 
 

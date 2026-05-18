@@ -21,6 +21,7 @@ export const authService = {
 
 export const rutasService = {
   createRepartidor: (data) => apiClient.post("/rutas/repartidores", data),
+  getMyRepartidorProfile: () => apiClient.get("/rutas/repartidores/me"),
   getRepartidor: (id) => apiClient.get(`/rutas/repartidores/${id}`),
   listRepartidores: (params) =>
     apiClient.get("/rutas/repartidores", { params }),
@@ -34,6 +35,8 @@ export const rutasService = {
     apiClient.post(`/rutas/rutas/${rutaId}/location`, data),
   getLocationHistory: (rutaId, params) =>
     apiClient.get(`/rutas/rutas/${rutaId}/locations`, { params }),
+  getRouteStatusHistory: (rutaId) =>
+    apiClient.get(`/rutas/rutas/${rutaId}/status-history`),
   getRepartidorStats: (id) => apiClient.get(`/rutas/stats/repartidor/${id}`),
 };
 
@@ -49,8 +52,8 @@ export const notificacionesService = {
   getTemplate: (id) => apiClient.get(`/notificaciones/templates/${id}`),
   listTemplates: (params) =>
     apiClient.get("/notificaciones/templates/", { params }),
-  getUserStats: (userId) =>
-    apiClient.get(`/notificaciones/stats/user/${userId}`),
+  getUserStats: (userId, params) =>
+    apiClient.get(`/notificaciones/stats/user/${userId}`, { params }),
   sendBulk: (data) => apiClient.post("/notificaciones/send/bulk", data),
 };
 

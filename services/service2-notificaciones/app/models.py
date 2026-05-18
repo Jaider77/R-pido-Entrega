@@ -2,7 +2,7 @@
 SQLAlchemy models for notifications service
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from sqlalchemy import Boolean, Column, DateTime
@@ -53,9 +53,16 @@ class Notification(Base):
     )
     is_read = Column(Boolean, default=False, nullable=False)
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    sent_at = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     def __repr__(self):
         return f"<Notification(id={self.id}, type={self.notification_type}, status={self.status})>"
@@ -72,8 +79,15 @@ class NotificationTemplate(Base):
     message_template = Column(Text, nullable=False)
     notification_type = Column(SQLEnum(NotificationType), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     def __repr__(self):
         return f"<NotificationTemplate(id={self.id}, name={self.name})>"
@@ -88,7 +102,9 @@ class NotificationLog(Base):
     notification_id = Column(Integer, nullable=False, index=True)
     action = Column(String(50), nullable=False)  # sent, failed, delivered, read
     details = Column(Text, nullable=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
 
     def __repr__(self):
         return f"<NotificationLog(id={self.id}, action={self.action})>"

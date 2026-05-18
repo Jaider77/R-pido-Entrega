@@ -10,9 +10,11 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = await login(email, password);
-    if (success) {
-      navigate("/dashboard", { replace: true });
+    const user = await login(email, password);
+    if (user) {
+      const redirectPath =
+        user.role === "repartidor" ? "/repartidor-profile" : "/dashboard";
+      navigate(redirectPath, { replace: true });
     }
   };
 

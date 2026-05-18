@@ -23,7 +23,6 @@ class DeliveryStatus(str, Enum):
 class RepartidorBase(BaseModel):
     """Base repartidor schema"""
 
-    user_id: int
     phone: str
     vehicle_type: str = Field(description="bike, motorcycle, car")
     license_plate: Optional[str] = None
@@ -48,6 +47,7 @@ class RepartidorResponse(RepartidorBase):
     """Repartidor response schema"""
 
     id: int
+    user_id: int
     latitude: Optional[float]
     longitude: Optional[float]
     is_active: bool
@@ -67,7 +67,7 @@ class LocationUpdate(BaseModel):
 class RutaBase(BaseModel):
     """Base route schema"""
 
-    repartidor_id: int
+    repartidor_id: Optional[int] = None
     delivery_id: int
     origin_latitude: float
     origin_longitude: float
@@ -92,10 +92,13 @@ class RutaResponse(RutaBase):
     """Route response schema"""
 
     id: int
+    created_by_user_id: Optional[int] = None
     estimated_distance_km: Optional[float]
     estimated_duration_minutes: Optional[int]
     status: DeliveryStatus
     notes: Optional[str]
+    last_changed_by_name: Optional[str] = None
+    last_changed_by_plate: Optional[str] = None
     created_at: datetime
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
@@ -112,5 +115,21 @@ class LocationHistoryResponse(BaseModel):
     longitude: float
     accuracy: Optional[float]
     timestamp: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RutaStatusHistoryResponse(BaseModel):
+    """Route status history response"""
+
+    id: int
+    ruta_id: int
+    previous_status: DeliveryStatus
+    new_status: DeliveryStatus
+    changed_by_user_id: int
+    changed_by_repartidor_id: Optional[int] = None
+    changed_by_name: Optional[str] = None
+    changed_by_plate: Optional[str] = None
+    changed_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

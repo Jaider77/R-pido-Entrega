@@ -3,7 +3,7 @@ Notification endpoints
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import httpx
@@ -42,7 +42,14 @@ async def verify_auth_token(credentials: HTTPAuthorizationCredentials = Depends(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token",
                 )
-            return response.json()
+            payload = response.json().get("payload")
+            if not payload:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token payload",
+                )
+            payload["token"] = token
+            return payload
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -58,6 +65,32 @@ def render_template(template: str, context: dict) -> str:
         return template
 
 
+async def resolve_recipient_user_id(
+    recipient: str, default_user_id: Optional[int], auth_token: Optional[str]
+) -> Optional[int]:
+    """Resolve an internal user ID from recipient information."""
+    if not recipient:
+        return default_user_id
+
+    if recipient.isdigit():
+        return int(recipient)
+
+    if "@" in recipient and auth_token:
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{settings.auth_service_url}/api/auth/users/by-email",
+                    params={"email": recipient},
+                    headers={"Authorization": f"Bearer {auth_token}"},
+                )
+                if response.status_code == 200:
+                    return response.json().get("id")
+        except Exception:
+            return default_user_id
+
+    return default_user_id
+
+
 # ============================================
 # NOTIFICATION ENDPOINTS
 # ============================================
@@ -70,14 +103,25 @@ async def create_notification(
     auth: dict = Depends(verify_auth_token),
 ):
     """Create and send a notification"""
-    db_notification = Notification(**notification.dict())
+    notification_data = notification.model_dump()
+    notification_data["user_id"] = await resolve_recipient_user_id(
+        notification_data.get("recipient"),
+        notification_data.get("user_id"),
+        auth.get("token"),
+    )
+    if notification_data.get("user_id") is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unable to resolve recipient user id",
+        )
+    db_notification = Notification(**notification_data)
     db.add(db_notification)
     db.commit()
     db.refresh(db_notification)
 
     # Prototype behavior: mark notification as sent and store sent time
     db_notification.status = NotificationStatus.SENT
-    db_notification.sent_at = datetime.utcnow()
+    db_notification.sent_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(db_notification)
 
@@ -121,11 +165,16 @@ async def get_user_notifications(
     skip: int = 0,
     limit: int = 50,
     is_read: Optional[bool] = None,
+    recipient: Optional[str] = None,
     db: Session = Depends(get_db),
     auth: dict = Depends(verify_auth_token),
 ):
     """Get notifications for a user"""
-    query = db.query(Notification).filter(Notification.user_id == user_id)
+    query = db.query(Notification)
+    if recipient:
+        query = query.filter(Notification.recipient == recipient)
+    else:
+        query = query.filter(Notification.user_id == user_id)
 
     if is_read is not None:
         query = query.filter(Notification.is_read == is_read)
@@ -148,7 +197,7 @@ async def update_notification(
             detail="Notification not found",
         )
 
-    for field, value in notification_update.dict(exclude_unset=True).items():
+    for field, value in notification_update.model_dump(exclude_unset=True).items():
         setattr(db_notification, field, value)
 
     db.commit()
@@ -197,7 +246,7 @@ async def create_notification_template(
             detail="Template with this name already exists",
         )
 
-    db_template = NotificationTemplate(**template.dict())
+    db_template = NotificationTemplate(**template.model_dump())
     db.add(db_template)
     db.commit()
     db.refresh(db_template)
@@ -299,32 +348,21 @@ async def send_bulk_notifications(
 @router.get("/stats/user/{user_id}")
 async def get_user_notification_stats(
     user_id: int,
+    recipient: Optional[str] = None,
     db: Session = Depends(get_db),
     auth: dict = Depends(verify_auth_token),
 ):
     """Get notification statistics for a user"""
-    total = db.query(Notification).filter(Notification.user_id == user_id).count()
-    unread = (
-        db.query(Notification)
-        .filter(Notification.user_id == user_id, Notification.is_read is False)
-        .count()
-    )
-    sent = (
-        db.query(Notification)
-        .filter(
-            Notification.user_id == user_id,
-            Notification.status == NotificationStatus.SENT,
-        )
-        .count()
-    )
-    failed = (
-        db.query(Notification)
-        .filter(
-            Notification.user_id == user_id,
-            Notification.status == NotificationStatus.FAILED,
-        )
-        .count()
-    )
+    query = db.query(Notification)
+    if recipient:
+        query = query.filter(Notification.recipient == recipient)
+    else:
+        query = query.filter(Notification.user_id == user_id)
+
+    total = query.count()
+    unread = query.filter(Notification.is_read.is_(False)).count()
+    sent = query.filter(Notification.status == NotificationStatus.SENT).count()
+    failed = query.filter(Notification.status == NotificationStatus.FAILED).count()
 
     return {
         "user_id": user_id,

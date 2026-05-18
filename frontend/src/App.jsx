@@ -11,6 +11,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Rutas from "./pages/Rutas";
 import Notificaciones from "./pages/Notificaciones";
+import RepartidorProfile from "./pages/RepartidorProfile";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -58,6 +59,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Notificaciones />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/repartidor-profile"
+                element={
+                  <ProtectedRoute>
+                    <RepartidorProfile />
                   </ProtectedRoute>
                 }
               />
