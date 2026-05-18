@@ -21,8 +21,11 @@ Este repositorio contiene la infraestructura de la plataforma logística de Ráp
   - notificaciones sin leer
   - notificaciones fallidas
 - Página `Rutas` con:
-  - creación de rutas desde UI
+  - creación de rutas desde UI para usuarios normales
+  - rutas creadas sin asignar repartidor automáticamente
   - listado de rutas con origen, destino, repartidor y estado
+  - repartidores solo ven rutas abiertas si tienen perfil creado
+  - repartidores pueden tomar rutas abiertas y actualizar su estado
   - recarga manual de datos
 - Página `Notificaciones` con:
   - envío de notificaciones
@@ -30,6 +33,7 @@ Este repositorio contiene la infraestructura de la plataforma logística de Ráp
   - filtros por tipo y estado
   - búsqueda por título o mensaje
   - marcado de notificaciones como leídas
+  - repartidor puede responder notificaciones recibidas en lugar de enviar nuevas
 
 ### Backend
 

@@ -23,6 +23,7 @@ from app.schemas import (
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from geopy.distance import geodesic
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -270,7 +271,14 @@ async def list_rutas(
         if user_id is not None:
             repartidor = db.query(Repartidor).filter(Repartidor.user_id == user_id).first()
             if repartidor:
-                query = query.filter(Ruta.repartidor_id == repartidor.id)
+                query = query.filter(
+                    or_(
+                        Ruta.repartidor_id == repartidor.id,
+                        Ruta.repartidor_id.is_(None),
+                    )
+                )
+            else:
+                return []
     elif user_role == "user":
         user_id = auth.get("sub")
         try:
@@ -280,7 +288,7 @@ async def list_rutas(
         if user_id is not None:
             query = query.filter(Ruta.created_by_user_id == user_id)
 
-    if repartidor_id is not None:
+    if user_role != "repartidor" and repartidor_id is not None:
         query = query.filter(Ruta.repartidor_id == repartidor_id)
 
     if status:
@@ -323,11 +331,18 @@ async def update_ruta(
             )
 
         current_repartidor = db.query(Repartidor).filter(Repartidor.user_id == user_id).first()
-        if not current_repartidor or current_repartidor.id != db_ruta.repartidor_id:
+        if not current_repartidor or (
+            db_ruta.repartidor_id is not None and current_repartidor.id != db_ruta.repartidor_id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No autorizado para actualizar esta ruta",
             )
+        if db_ruta.repartidor_id is None and ruta_update.status in (
+            DeliveryStatus.ASSIGNED,
+            DeliveryStatus.IN_TRANSIT,
+        ):
+            db_ruta.repartidor_id = current_repartidor.id
 
     for field, value in ruta_update.model_dump(exclude_unset=True).items():
         setattr(db_ruta, field, value)

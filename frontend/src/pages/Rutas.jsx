@@ -4,7 +4,6 @@ import useAuthStore from "../stores/authStore";
 import toast from "react-hot-toast";
 
 const initialForm = {
-  repartidor_id: "",
   delivery_id: "",
   origin_latitude: "",
   origin_longitude: "",
@@ -49,15 +48,6 @@ export default function Rutas() {
   }, [user]);
 
   useEffect(() => {
-    if (repartidorProfile?.id) {
-      setForm((prev) => ({
-        ...prev,
-        repartidor_id: String(repartidorProfile.id),
-      }));
-    }
-  }, [repartidorProfile]);
-
-  useEffect(() => {
     fetchRoutes();
   }, [user, repartidorProfile]);
 
@@ -78,10 +68,12 @@ export default function Rutas() {
   const fetchRoutes = async () => {
     setLoading(true);
     try {
-      const params = { limit: 50 };
-      if (repartidorProfile?.id) {
-        params.repartidor_id = repartidorProfile.id;
+      if (user?.role === "repartidor" && !repartidorProfile) {
+        setRoutes([]);
+        return;
       }
+
+      const params = { limit: 50 };
       const { data } = await rutasService.listRutas(params);
       setRoutes(data || []);
     } catch (error) {
@@ -101,8 +93,6 @@ export default function Rutas() {
     setSaving(true);
     try {
       const payload = {
-        repartidor_id:
-          Number(form.repartidor_id) || (repartidorProfile?.id ?? null),
         delivery_id: Number(form.delivery_id),
         origin_latitude: Number(form.origin_latitude),
         origin_longitude: Number(form.origin_longitude),
@@ -143,92 +133,84 @@ export default function Rutas() {
       </div>
 
       <div className="card">
-        <h2>Crear nueva ruta</h2>
-        {user?.role === "repartidor" && !repartidorProfile ? (
-          <p style={{ color: "#dc2626" }}>
-            Aún no tienes un perfil de repartidor. Ve a tu perfil para crear uno
-            y así poder gestionar tus rutas.
-          </p>
-        ) : null}
-        <form onSubmit={handleSubmit}>
-          <div
-            style={{
-              display: "grid",
-              gap: "1rem",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            }}
-          >
-            <input
-              type="number"
-              name="repartidor_id"
-              placeholder="ID de repartidor (opcional)"
-              value={form.repartidor_id}
+        <h2>Revisa tu lista de rutas</h2>
+        {user?.role === "repartidor" ? (
+          repartidorProfile ? (
+            <p style={{ color: "#3745df" }}>
+              Estas son las rutas abiertas y asignadas que puedes tomar.
+            </p>
+          ) : (
+            <p style={{ color: "#dc2626" }}>
+              Debes crear tu perfil de repartidor para ver y tomar rutas
+              abiertas.
+            </p>
+          )
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div
+              style={{
+                display: "grid",
+                gap: "1rem",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              }}
+            >
+              <input
+                type="number"
+                name="delivery_id"
+                placeholder="ID de entrega"
+                value={form.delivery_id}
+                onChange={handleChange}
+                required
+              />
+              <input
+                type="number"
+                name="origin_latitude"
+                placeholder="Latitud origen"
+                value={form.origin_latitude}
+                onChange={handleChange}
+                step="0.000001"
+                required
+              />
+              <input
+                type="number"
+                name="origin_longitude"
+                placeholder="Longitud origen"
+                value={form.origin_longitude}
+                onChange={handleChange}
+                step="0.000001"
+                required
+              />
+              <input
+                type="number"
+                name="destination_latitude"
+                placeholder="Latitud destino"
+                value={form.destination_latitude}
+                onChange={handleChange}
+                step="0.000001"
+                required
+              />
+              <input
+                type="number"
+                name="destination_longitude"
+                placeholder="Longitud destino"
+                value={form.destination_longitude}
+                onChange={handleChange}
+                step="0.000001"
+                required
+              />
+            </div>
+            <textarea
+              name="notes"
+              placeholder="Notas de la entrega"
+              value={form.notes}
               onChange={handleChange}
-              required={user?.role === "repartidor"}
-              readOnly={user?.role === "repartidor" && !!repartidorProfile?.id}
+              rows={3}
             />
-            <input
-              type="number"
-              name="delivery_id"
-              placeholder="ID de entrega"
-              value={form.delivery_id}
-              onChange={handleChange}
-              required
-            />
-            <input
-              type="number"
-              name="origin_latitude"
-              placeholder="Latitud origen"
-              value={form.origin_latitude}
-              onChange={handleChange}
-              step="0.000001"
-              required
-            />
-            <input
-              type="number"
-              name="origin_longitude"
-              placeholder="Longitud origen"
-              value={form.origin_longitude}
-              onChange={handleChange}
-              step="0.000001"
-              required
-            />
-            <input
-              type="number"
-              name="destination_latitude"
-              placeholder="Latitud destino"
-              value={form.destination_latitude}
-              onChange={handleChange}
-              step="0.000001"
-              required
-            />
-            <input
-              type="number"
-              name="destination_longitude"
-              placeholder="Longitud destino"
-              value={form.destination_longitude}
-              onChange={handleChange}
-              step="0.000001"
-              required
-            />
-          </div>
-          <textarea
-            name="notes"
-            placeholder="Notas de la entrega"
-            value={form.notes}
-            onChange={handleChange}
-            rows={3}
-          />
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={
-              saving || (user?.role === "repartidor" && !repartidorProfile)
-            }
-          >
-            {saving ? "Creando ruta..." : "Crear ruta"}
-          </button>
-        </form>
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? "Creando ruta..." : "Crear ruta"}
+            </button>
+          </form>
+        )}
       </div>
 
       <div className="card">
@@ -338,42 +320,60 @@ export default function Rutas() {
                         )}
                       </td>
                       <td style={{ padding: "0.75rem" }}>
-                        {user?.role === "repartidor" &&
-                        ruta.repartidor_id === repartidorProfile?.id ? (
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "0.5rem",
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            {(ruta.status === "pending" ||
-                              ruta.status === "assigned") && (
-                              <button
-                                className="btn-secondary"
-                                onClick={() =>
-                                  changeRouteStatus(ruta.id, "in_transit")
-                                }
-                                disabled={actionLoading}
-                              >
-                                Marcar recogido
-                              </button>
-                            )}
-                            {ruta.status === "in_transit" && (
-                              <button
-                                className="btn-primary"
-                                onClick={() =>
-                                  changeRouteStatus(ruta.id, "delivered")
-                                }
-                                disabled={actionLoading}
-                              >
-                                Marcar entregado
-                              </button>
-                            )}
-                            {ruta.status === "delivered" && (
-                              <span>✔ Entregado</span>
-                            )}
-                          </div>
+                        {user?.role === "repartidor" ? (
+                          ruta.repartidor_id === null &&
+                          ruta.status === "pending" ? (
+                            <button
+                              className="btn-primary"
+                              onClick={() =>
+                                changeRouteStatus(ruta.id, "assigned")
+                              }
+                              disabled={actionLoading}
+                            >
+                              Tomar ruta
+                            </button>
+                          ) : ruta.repartidor_id === repartidorProfile?.id ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "0.5rem",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              {(ruta.status === "pending" ||
+                                ruta.status === "assigned") && (
+                                <button
+                                  className="btn-secondary"
+                                  onClick={() =>
+                                    changeRouteStatus(ruta.id, "in_transit")
+                                  }
+                                  disabled={actionLoading}
+                                >
+                                  Marcar recogido
+                                </button>
+                              )}
+                              {ruta.status === "in_transit" && (
+                                <button
+                                  className="btn-primary"
+                                  onClick={() =>
+                                    changeRouteStatus(ruta.id, "delivered")
+                                  }
+                                  disabled={actionLoading}
+                                >
+                                  Marcar entregado
+                                </button>
+                              )}
+                              {ruta.status === "delivered" && (
+                                <span>✔ Entregado</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ color: "#4b5563" }}>
+                              {ruta.repartidor_id
+                                ? "Asignada a otro"
+                                : "Sin acción"}
+                            </span>
+                          )
                         ) : (
                           <span style={{ color: "#4b5563" }}>-</span>
                         )}

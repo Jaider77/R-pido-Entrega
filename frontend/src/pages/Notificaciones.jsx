@@ -118,6 +118,20 @@ export default function Notificaciones() {
     }
   };
 
+  const respondNotification = async (notificationId) => {
+    try {
+      await notificacionesService.updateNotification(notificationId, {
+        is_read: true,
+      });
+      toast.success("Notificación respondida correctamente.");
+      fetchNotifications();
+    } catch (error) {
+      toast.error("No se pudo responder la notificación.");
+    }
+  };
+
+  const canSendNotifications = user?.role !== "repartidor";
+
   return (
     <div>
       <div className="card">
@@ -127,56 +141,66 @@ export default function Notificaciones() {
         </p>
       </div>
 
-      <div className="card">
-        <h2>Enviar notificación</h2>
-        <form onSubmit={handleSubmit}>
-          <div
-            style={{
-              display: "grid",
-              gap: "1rem",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            }}
-          >
-            <input
-              type="text"
-              name="title"
-              placeholder="Título"
-              value={form.title}
-              onChange={handleChange}
-              required
-            />
-            <input
-              type="text"
-              name="recipient"
-              placeholder="Destinatario (ID de usuario o email)"
-              value={form.recipient}
-              onChange={handleChange}
-              required
-            />
-            <select
-              name="notification_type"
-              value={form.notification_type}
-              onChange={handleChange}
+      {canSendNotifications ? (
+        <div className="card">
+          <h2>Enviar notificación</h2>
+          <form onSubmit={handleSubmit}>
+            <div
+              style={{
+                display: "grid",
+                gap: "1rem",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              }}
             >
-              <option value="email">Email</option>
-              <option value="sms">SMS</option>
-              <option value="push">Push</option>
-              <option value="in_app">In-App</option>
-            </select>
-          </div>
-          <textarea
-            name="message"
-            placeholder="Mensaje"
-            value={form.message}
-            onChange={handleChange}
-            rows={4}
-            required
-          />
-          <button type="submit" className="btn-primary" disabled={sending}>
-            {sending ? "Enviando..." : "Enviar notificación"}
-          </button>
-        </form>
-      </div>
+              <input
+                type="text"
+                name="title"
+                placeholder="Título"
+                value={form.title}
+                onChange={handleChange}
+                required
+              />
+              <input
+                type="text"
+                name="recipient"
+                placeholder="Destinatario (ID de usuario o email)"
+                value={form.recipient}
+                onChange={handleChange}
+                required
+              />
+              <select
+                name="notification_type"
+                value={form.notification_type}
+                onChange={handleChange}
+              >
+                <option value="email">Email</option>
+                <option value="sms">SMS</option>
+                <option value="push">Push</option>
+                <option value="in_app">In-App</option>
+              </select>
+            </div>
+            <textarea
+              name="message"
+              placeholder="Mensaje"
+              value={form.message}
+              onChange={handleChange}
+              rows={4}
+              required
+            />
+            <button type="submit" className="btn-primary" disabled={sending}>
+              {sending ? "Enviando..." : "Enviar notificación"}
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="card">
+          <h2>Responder notificaciones</h2>
+          <p>
+            Como repartidor solo puedes responder las notificaciones que te
+            lleguen. Usa el botón "Responder" cuando recibas un mensaje.
+          </p>
+        </div>
+      )}
 
       <div className="card">
         <div
@@ -310,14 +334,28 @@ export default function Notificaciones() {
                         : "-"}
                     </td>
                     <td style={{ padding: "0.75rem" }}>
-                      {!notification.is_read && (
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          onClick={() => markAsRead(notification.id)}
-                        >
-                          Marcar leída
-                        </button>
+                      {user?.role === "repartidor" ? (
+                        !notification.is_read ? (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => respondNotification(notification.id)}
+                          >
+                            Responder
+                          </button>
+                        ) : (
+                          <span>Respondido</span>
+                        )
+                      ) : (
+                        !notification.is_read && (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => markAsRead(notification.id)}
+                          >
+                            Marcar leída
+                          </button>
+                        )
                       )}
                     </td>
                   </tr>
