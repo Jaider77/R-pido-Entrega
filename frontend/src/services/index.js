@@ -5,6 +5,7 @@ const authService = {
   register: (data) => apiClient.post("/auth/register", data),
   login: (data) => apiClient.post("/auth/login", data),
   getMe: () => apiClient.get("/auth/me"),
+  upgradeToRepartidor: () => apiClient.post("/auth/upgrade-to-repartidor"),
   logout: async () => {
     try {
       const refreshToken = localStorage.getItem("refresh_token");

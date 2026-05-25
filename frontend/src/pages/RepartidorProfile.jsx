@@ -33,7 +33,6 @@ export default function RepartidorProfile() {
   useEffect(() => {
     if (!user) return;
     if (user.role !== "repartidor") {
-      navigate("/dashboard", { replace: true });
       return;
     }
     fetchProfile();
@@ -91,11 +90,24 @@ export default function RepartidorProfile() {
       toast.success("Perfil de repartidor creado correctamente.");
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      toast.error("No se pudo crear el perfil de repartidor.");
+      const detail = error.response?.data?.detail || error.message;
+      toast.error(`No se pudo crear el perfil de repartidor. ${detail}`);
     } finally {
       setSaving(false);
     }
   };
+
+  if (user?.role !== "repartidor") {
+    return (
+      <div className="card">
+        <h1>Perfil de repartidor</h1>
+        <p>
+          Tu cuenta no es repartidor todavía. Ve a tu perfil y convierte tu
+          cuenta en repartidor para crear el perfil de repartidor.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="card">

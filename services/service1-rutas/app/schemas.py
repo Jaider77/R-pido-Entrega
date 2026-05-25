@@ -69,10 +69,12 @@ class RutaBase(BaseModel):
 
     repartidor_id: Optional[int] = None
     delivery_id: int
-    origin_latitude: float
-    origin_longitude: float
-    destination_latitude: float
-    destination_longitude: float
+    origin_address: Optional[str] = None
+    destination_address: Optional[str] = None
+    origin_latitude: Optional[float] = None
+    origin_longitude: Optional[float] = None
+    destination_latitude: Optional[float] = None
+    destination_longitude: Optional[float] = None
 
 
 class RutaCreate(RutaBase):
@@ -93,15 +95,15 @@ class RutaResponse(RutaBase):
 
     id: int
     created_by_user_id: Optional[int] = None
-    estimated_distance_km: Optional[float]
-    estimated_duration_minutes: Optional[int]
+    estimated_distance_km: Optional[float] = None
+    estimated_duration_minutes: Optional[int] = None
     status: DeliveryStatus
-    notes: Optional[str]
+    notes: Optional[str] = None
     last_changed_by_name: Optional[str] = None
     last_changed_by_plate: Optional[str] = None
     created_at: datetime
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -60,6 +60,28 @@ async def verify_auth_token(credentials: HTTPAuthorizationCredentials = Depends(
         )
 
 
+async def geocode_address(address: str) -> tuple[Optional[float], Optional[float]]:
+    """Geocode an address using Nominatim (OpenStreetMap). Returns (lat, lon) or (None, None)."""
+    if not address:
+        return None, None
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={"q": address, "format": "json", "limit": 1},
+                headers={"User-Agent": "Rapido-Entrega/1.0"},
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                if data:
+                    item = data[0]
+                    return float(item.get("lat")), float(item.get("lon"))
+    except Exception:
+        # ignore geocoding errors and fall back to None
+        return None, None
+    return None, None
+
+
 # ============================================
 # REPARTIDOR ENDPOINTS
 # ============================================
@@ -208,15 +230,50 @@ async def create_ruta(
                 detail="Repartidor not found",
             )
 
-    # Calculate distance
-    origin = (ruta.origin_latitude, ruta.origin_longitude)
-    destination = (ruta.destination_latitude, ruta.destination_longitude)
-    distance_km = geodesic(origin, destination).kilometers
+    # Calculate distance if lat/lng available; otherwise attempt geocoding from addresses
+    origin_lat = getattr(ruta, "origin_latitude", None)
+    origin_lng = getattr(ruta, "origin_longitude", None)
+    dest_lat = getattr(ruta, "destination_latitude", None)
+    dest_lng = getattr(ruta, "destination_longitude", None)
 
-    # Estimate time (assuming average speed of 30 km/h)
-    estimated_time = int((distance_km / 30) * 60)
+    # Try geocoding if coordinates are missing but addresses are provided
+    if (origin_lat is None or origin_lng is None) and getattr(ruta, "origin_address", None):
+        o_lat, o_lng = await geocode_address(ruta.origin_address)
+        if o_lat is not None and o_lng is not None:
+            origin_lat, origin_lng = o_lat, o_lng
+
+    if (dest_lat is None or dest_lng is None) and getattr(ruta, "destination_address", None):
+        d_lat, d_lng = await geocode_address(ruta.destination_address)
+        if d_lat is not None and d_lng is not None:
+            dest_lat, dest_lng = d_lat, d_lng
+
+    distance_km = None
+    estimated_time = None
+    if (
+        origin_lat is not None
+        and origin_lng is not None
+        and dest_lat is not None
+        and dest_lng is not None
+    ):
+        try:
+            origin = (origin_lat, origin_lng)
+            destination = (dest_lat, dest_lng)
+            distance_km = geodesic(origin, destination).kilometers
+            # Estimate time (assuming average speed of 30 km/h)
+            estimated_time = int((distance_km / 30) * 60)
+        except Exception:
+            distance_km = None
+            estimated_time = None
 
     route_data = ruta.model_dump(exclude_none=True)
+    # include any geocoded coordinates if available
+    if origin_lat is not None and origin_lng is not None:
+        route_data["origin_latitude"] = origin_lat
+        route_data["origin_longitude"] = origin_lng
+    if dest_lat is not None and dest_lng is not None:
+        route_data["destination_latitude"] = dest_lat
+        route_data["destination_longitude"] = dest_lng
+
     if repartidor_id is not None:
         route_data["repartidor_id"] = repartidor_id
     route_data["created_by_user_id"] = creator_user_id

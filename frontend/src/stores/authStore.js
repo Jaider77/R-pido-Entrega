@@ -52,6 +52,29 @@ const useAuthStore = create((set) => ({
     }
   },
 
+  upgradeToRepartidor: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data } = await authService.upgradeToRepartidor();
+      localStorage.setItem("token", data.access_token);
+      if (data.refresh_token) {
+        localStorage.setItem("refresh_token", data.refresh_token);
+      }
+      set({ token: data.access_token, user: data.user });
+      return data.user;
+    } catch (error) {
+      const detail = error.response?.data?.detail;
+      set({
+        error: Array.isArray(detail)
+          ? detail.map((item) => item.msg).join(". ")
+          : detail || "Error al actualizar el rol a repartidor",
+      });
+      return null;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
   logout: async () => {
     await authService.logout();
     set({ user: null, token: null });

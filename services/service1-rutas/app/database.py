@@ -79,6 +79,10 @@ def ensure_rutas_schema():
         missing_columns.append("ALTER TABLE rutas ADD COLUMN last_changed_by_name VARCHAR(150)")
     if "last_changed_by_plate" not in columns:
         missing_columns.append("ALTER TABLE rutas ADD COLUMN last_changed_by_plate VARCHAR(50)")
+    if "origin_address" not in columns:
+        missing_columns.append("ALTER TABLE rutas ADD COLUMN origin_address TEXT")
+    if "destination_address" not in columns:
+        missing_columns.append("ALTER TABLE rutas ADD COLUMN destination_address TEXT")
 
     with engine.begin() as conn:
         for sql in missing_columns:
@@ -94,6 +98,23 @@ def ensure_rutas_schema():
                 elif engine.dialect.name == "sqlite":
                     logger.info(
                         "SQLite does not support DROP NOT NULL via ALTER TABLE; migration skipped for repartidor_id."
+                    )
+
+        # Make origin/destination coordinates nullable if currently NOT NULL
+        for col in (
+            "origin_latitude",
+            "origin_longitude",
+            "destination_latitude",
+            "destination_longitude",
+        ):
+            if col in columns and not columns[col].get("nullable", True):
+                if engine.dialect.name == "postgresql":
+                    logger.info("Making %s nullable in rutas table.", col)
+                    conn.execute(text(f"ALTER TABLE rutas ALTER COLUMN {col} DROP NOT NULL"))
+                elif engine.dialect.name == "sqlite":
+                    logger.info(
+                        "SQLite does not support DROP NOT NULL via ALTER TABLE; migration skipped for %s.",
+                        col,
                     )
 
         if is_timestamp_without_timezone("rutas", "created_at"):

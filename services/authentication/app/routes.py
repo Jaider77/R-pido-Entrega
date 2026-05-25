@@ -35,6 +35,7 @@ router = APIRouter()
 
 
 def is_admin_email(email: str) -> bool:
+    """Return True if the email belongs to an admin domain."""
     return email.lower().endswith("@admin.com")
 
 
@@ -257,6 +258,51 @@ async def refresh_token(
         token_type=token_type,
         expires_in=expires_in,
         user=UserResponse.model_validate(user),
+    )
+
+
+@router.post("/upgrade-to-repartidor", response_model=TokenResponse)
+async def upgrade_to_repartidor(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Upgrade an existing user account to repartidor role."""
+    if current_user.role == "repartidor":
+        access_token = create_access_token(
+            data={"sub": str(current_user.id), "role": current_user.role}
+        )
+        refresh_token = create_refresh_token(db, current_user.id)
+        expires_in = settings.jwt_expiration_hours * 3600
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",  # nosec
+            expires_in=expires_in,
+            user=UserResponse.model_validate(current_user),
+        )
+
+    if current_user.role == "admin":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Los administradores no pueden cambiar a repartidor.",
+        )
+
+    current_user.role = "repartidor"
+    db.commit()
+    db.refresh(current_user)
+
+    access_token = create_access_token(
+        data={"sub": str(current_user.id), "role": current_user.role}
+    )
+    refresh_token = create_refresh_token(db, current_user.id)
+    expires_in = settings.jwt_expiration_hours * 3600
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",  # nosec
+        expires_in=expires_in,
+        user=UserResponse.model_validate(current_user),
     )
 
 

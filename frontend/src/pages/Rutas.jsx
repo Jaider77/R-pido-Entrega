@@ -5,10 +5,8 @@ import toast from "react-hot-toast";
 
 const initialForm = {
   delivery_id: "",
-  origin_latitude: "",
-  origin_longitude: "",
-  destination_latitude: "",
-  destination_longitude: "",
+  origin_address: "",
+  destination_address: "",
   notes: "",
 };
 
@@ -94,10 +92,8 @@ export default function Rutas() {
     try {
       const payload = {
         delivery_id: Number(form.delivery_id),
-        origin_latitude: Number(form.origin_latitude),
-        origin_longitude: Number(form.origin_longitude),
-        destination_latitude: Number(form.destination_latitude),
-        destination_longitude: Number(form.destination_longitude),
+        origin_address: form.origin_address,
+        destination_address: form.destination_address,
         notes: form.notes,
       };
       await rutasService.createRuta(payload);
@@ -168,39 +164,19 @@ export default function Rutas() {
                 required
               />
               <input
-                type="number"
-                name="origin_latitude"
-                placeholder="Latitud origen"
-                value={form.origin_latitude}
+                type="text"
+                name="origin_address"
+                placeholder="Origen: Ciudad, Barrio, Calle, #"
+                value={form.origin_address}
                 onChange={handleChange}
-                step="0.000001"
                 required
               />
               <input
-                type="number"
-                name="origin_longitude"
-                placeholder="Longitud origen"
-                value={form.origin_longitude}
+                type="text"
+                name="destination_address"
+                placeholder="Destino: Ciudad, Barrio, Calle, #"
+                value={form.destination_address}
                 onChange={handleChange}
-                step="0.000001"
-                required
-              />
-              <input
-                type="number"
-                name="destination_latitude"
-                placeholder="Latitud destino"
-                value={form.destination_latitude}
-                onChange={handleChange}
-                step="0.000001"
-                required
-              />
-              <input
-                type="number"
-                name="destination_longitude"
-                placeholder="Longitud destino"
-                value={form.destination_longitude}
-                onChange={handleChange}
-                step="0.000001"
                 required
               />
             </div>
@@ -301,11 +277,16 @@ export default function Rutas() {
                         </span>
                       </td>
                       <td style={{ padding: "0.75rem" }}>
-                        {ruta.origin_latitude}, {ruta.origin_longitude}
+                        {ruta.origin_address ??
+                          `${ruta.origin_latitude || ""}, ${
+                            ruta.origin_longitude || ""
+                          }`}
                       </td>
                       <td style={{ padding: "0.75rem" }}>
-                        {ruta.destination_latitude},{" "}
-                        {ruta.destination_longitude}
+                        {ruta.destination_address ??
+                          `${ruta.destination_latitude || ""}, ${
+                            ruta.destination_longitude || ""
+                          }`}
                       </td>
                       <td style={{ padding: "0.75rem" }}>
                         {lastChange}

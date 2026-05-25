@@ -22,11 +22,17 @@ Este repositorio contiene la infraestructura de la plataforma logística de Ráp
   - notificaciones fallidas
 - Página `Rutas` con:
   - creación de rutas desde UI para usuarios normales
+  - el formulario de creación ahora acepta direcciones modernas (`origin_address`, `destination_address`) en lugar de latitud/longitud
+  - el backend intenta geocodificar las direcciones (OpenStreetMap/Nominatim) para obtener coordenadas y estimar distancia/tiempo
   - rutas creadas sin asignar repartidor automáticamente
   - listado de rutas con origen, destino, repartidor y estado
   - repartidores solo ven rutas abiertas si tienen perfil creado
   - repartidores pueden tomar rutas abiertas y actualizar su estado
   - recarga manual de datos
+- Página `Perfil` con:
+  - vista del usuario actual y su rol
+  - botón para convertir una cuenta normal en repartidor
+  - redirección automática al perfil de repartidor después de la actualización de rol
 - Página `Notificaciones` con:
   - envío de notificaciones
   - historial por usuario
@@ -202,6 +208,15 @@ pytest services/service3/tests/test_service3.py
 - API Gateway: <http://localhost:80>
 - Auth: <http://localhost:80/api/auth/>
 - Rutas: <http://localhost:80/api/rutas/>
+
+## Cambios en el contrato de Rutas (IMPORTANTE)
+
+- Los endpoints de creación de rutas ahora aceptan `origin_address` y `destination_address` (texto libre). Las propiedades `origin_latitude`, `origin_longitude`, `destination_latitude` y `destination_longitude` siguen siendo válidas pero son opcionales.
+- Si se proporcionan direcciones y no coordenadas, el servicio de rutas intentará geocodificar las direcciones usando Nominatim (OpenStreetMap). Si la geocodificación falla, la ruta se creará sin datos de distancia/tiempo.
+- Frontend actualizado: `frontend/src/pages/Rutas.jsx` envía `origin_address` y `destination_address` en el payload.
+
+Si tienes integraciones externas que enviaban directamente coordenadas, seguirán funcionando; sin embargo, se recomienda migrar al uso de direcciones para una UX más sencilla.
+
 - Notificaciones: <http://localhost:80/api/notificaciones/>
 - Service3: <http://localhost:80/api/service3/>
 
