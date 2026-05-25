@@ -4,8 +4,8 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f8fafc;
-  color: #111827;
+  background-color:#d6e2ee;
+  color: hsl(240, 2%, 8%);
 }
 
 .app-container {
@@ -17,9 +17,9 @@
 
 .main-content {
   flex: 1;
-  background: #ffffff;
+  background: transparent;
   border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.5);
   padding: 1rem;
 }
 

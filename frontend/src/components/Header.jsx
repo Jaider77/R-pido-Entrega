@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import Avatar from "./Avatar";
+import logo from "../image/logo.png";
 
 export default function Header() {
   const user = useAuthStore((s) => s.user);
@@ -31,73 +32,17 @@ export default function Header() {
           alignItems: "center",
         }}
       >
-        <h1>📦 Rápido-Entrega</h1>
-        <nav>
-          <NavLink
-            to="/"
-            style={({ isActive }) => ({
-              color: "white",
-              marginRight: "1rem",
-              textDecoration: "none",
-              opacity: isActive ? 0.85 : 1,
-            })}
-          >
-            Inicio
-          </NavLink>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <img src={logo} alt="Logo" style={{ height: "80px", width: "auto" }} />
+          <h1 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "bold", letterSpacing: "0.5px", fontFamily: "'Poppins', 'Segoe UI', sans-serif" }}>Rápido-Entrega</h1>
+        </div>
+        <nav style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
           {token && user ? (
-            <NavLink to="/profile" style={{ textDecoration: "none" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", marginRight: "1rem", opacity: 0.95 }}>
+            <>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
                 <Avatar size={32} />
                 <span style={{ color: "white" }}>Hola, {user.full_name}</span>
               </span>
-            </NavLink>
-          ) : null}
-          {token ? (
-            <>
-              <NavLink
-                to="/dashboard"
-                style={({ isActive }) => ({
-                  color: "white",
-                  textDecoration: "none",
-                  marginRight: "1rem",
-                  opacity: isActive ? 0.85 : 1,
-                })}
-              >
-                Panel de Control
-              </NavLink>
-              <NavLink
-                to="/rutas"
-                style={({ isActive }) => ({
-                  color: "white",
-                  textDecoration: "none",
-                  marginRight: "1rem",
-                  opacity: isActive ? 0.85 : 1,
-                })}
-              >
-                Rutas
-              </NavLink>
-              <NavLink
-                to="/notificaciones"
-                style={({ isActive }) => ({
-                  color: "white",
-                  textDecoration: "none",
-                  marginRight: "1rem",
-                  opacity: isActive ? 0.85 : 1,
-                })}
-              >
-                Notificaciones
-              </NavLink>
-              <NavLink
-                to="/profile"
-                style={({ isActive }) => ({
-                  color: "white",
-                  textDecoration: "none",
-                  marginRight: "1rem",
-                  opacity: isActive ? 0.85 : 1,
-                })}
-              >
-                Perfil
-              </NavLink>
               <button
                 onClick={handleLogout}
                 style={{
@@ -112,31 +57,7 @@ export default function Header() {
                 Cerrar sesión
               </button>
             </>
-          ) : (
-            <>
-              <NavLink
-                to="/login"
-                style={({ isActive }) => ({
-                  color: "white",
-                  textDecoration: "none",
-                  marginRight: "1rem",
-                  opacity: isActive ? 0.85 : 1,
-                })}
-              >
-                Iniciar sesión
-              </NavLink>
-              <NavLink
-                to="/register"
-                style={({ isActive }) => ({
-                  color: "white",
-                  textDecoration: "none",
-                  opacity: isActive ? 0.85 : 1,
-                })}
-              >
-                Registro
-              </NavLink>
-            </>
-          )}
+          ) : null}
         </nav>
       </div>
     </header>
