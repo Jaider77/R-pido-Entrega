@@ -1,6 +1,7 @@
 import apiClient from "./api";
+import adminService from "./adminService";
 
-export const authService = {
+const authService = {
   register: (data) => apiClient.post("/auth/register", data),
   login: (data) => apiClient.post("/auth/login", data),
   getMe: () => apiClient.get("/auth/me"),
@@ -19,7 +20,7 @@ export const authService = {
   },
 };
 
-export const rutasService = {
+const rutasService = {
   createRepartidor: (data) => apiClient.post("/rutas/repartidores", data),
   getMyRepartidorProfile: () => apiClient.get("/rutas/repartidores/me"),
   getRepartidor: (id) => apiClient.get(`/rutas/repartidores/${id}`),
@@ -40,7 +41,7 @@ export const rutasService = {
   getRepartidorStats: (id) => apiClient.get(`/rutas/stats/repartidor/${id}`),
 };
 
-export const notificacionesService = {
+const notificacionesService = {
   createNotification: (data) => apiClient.post("/notificaciones/", data),
   getNotification: (id) => apiClient.get(`/notificaciones/${id}`),
   getUserNotifications: (userId, params) =>
@@ -57,7 +58,7 @@ export const notificacionesService = {
   sendBulk: (data) => apiClient.post("/notificaciones/send/bulk", data),
 };
 
-export const service3 = {
+const service3 = {
   createItem: (data, params) =>
     apiClient.post("/service3/items", data, { params }),
   getItem: (id) => apiClient.get(`/service3/items/${id}`),
@@ -69,4 +70,12 @@ export const service3 = {
   getActivities: (itemId, params) =>
     apiClient.get(`/service3/activities/${itemId}`, { params }),
   getOwnerStats: (ownerId) => apiClient.get(`/service3/stats/owner/${ownerId}`),
+};
+
+export {
+  authService,
+  rutasService,
+  notificacionesService,
+  service3,
+  adminService,
 };

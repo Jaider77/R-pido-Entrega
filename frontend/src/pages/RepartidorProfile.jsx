@@ -113,7 +113,7 @@ export default function RepartidorProfile() {
             <strong>Usuario:</strong> {user?.full_name}
           </p>
           <p>
-            <strong>Email:</strong> {user?.email}
+            <strong>Correo electrónico:</strong> {user?.email}
           </p>
           <p>
             <strong>Teléfono:</strong> {profile.phone}

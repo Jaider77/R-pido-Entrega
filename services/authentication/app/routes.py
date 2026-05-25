@@ -27,9 +27,16 @@ from passlib.context import CryptContext
 from pydantic import EmailStr
 from sqlalchemy.orm import Session
 
+ALLOWED_ROLES = {"admin", "user", "repartidor"}
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def is_admin_email(email: str) -> bool:
+    return email.lower().endswith("@admin.com")
+
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -127,12 +134,19 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered",
         )
 
+    role = "admin" if is_admin_email(user_data.email) else user_data.role
+    if role not in ALLOWED_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role",
+        )
+
     # Create user
     user = User(
         email=user_data.email,
         full_name=user_data.full_name,
         password_hash=get_password_hash(user_data.password),
-        role=user_data.role,
+        role=role,
     )
     db.add(user)
     db.commit()

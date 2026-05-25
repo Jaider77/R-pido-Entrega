@@ -214,3 +214,103 @@ def test_verify_token():
     )
     assert response.status_code == 200
     assert response.json()["valid"] is True
+
+
+def test_admin_routes_restricted_for_non_admin():
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "user@example.com",
+            "password": "password123",
+            "full_name": "Regular User",
+            "role": "user",
+        },
+    )
+
+    login_response = client.post(
+        "/api/auth/login",
+        json={
+            "email": "user@example.com",
+            "password": "password123",
+        },
+    )
+    token = login_response.json()["access_token"]
+
+    response = client.get(
+        "/api/auth/admin/users",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_admin_email_domain_allows_admin_access():
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "pedro@admin.com",
+            "password": "password123",
+            "full_name": "Pedro Admin",
+            "role": "user",
+        },
+    )
+
+    login_response = client.post(
+        "/api/auth/login",
+        json={
+            "email": "pedro@admin.com",
+            "password": "password123",
+        },
+    )
+    token = login_response.json()["access_token"]
+    assert login_response.json()["user"]["role"] == "admin"
+
+    response = client.get(
+        "/api/auth/admin/users",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+
+
+def test_admin_can_list_and_update_users():
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "admin@example.com",
+            "password": "password123",
+            "full_name": "Admin User",
+            "role": "admin",
+        },
+    )
+    client.post(
+        "/api/auth/register",
+        json={
+            "email": "user2@example.com",
+            "password": "password123",
+            "full_name": "Guest User",
+            "role": "user",
+        },
+    )
+
+    admin_login = client.post(
+        "/api/auth/login",
+        json={
+            "email": "admin@example.com",
+            "password": "password123",
+        },
+    )
+    token = admin_login.json()["access_token"]
+
+    list_response = client.get(
+        "/api/auth/admin/users",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert list_response.status_code == 200
+    assert len(list_response.json()) == 2
+
+    change_role_response = client.post(
+        "/api/auth/admin/users/2/roles",
+        json={"role": "repartidor"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert change_role_response.status_code == 200
+    assert change_role_response.json()["role"] == "repartidor"

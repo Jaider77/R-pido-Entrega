@@ -114,6 +114,36 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+}
+
+.admin-table th,
+.admin-table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.85rem 0.75rem;
+  text-align: left;
+}
+
+.admin-table th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+
+.admin-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.admin-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.admin-table td {
+  vertical-align: top;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .app-container {

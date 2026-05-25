@@ -145,6 +145,11 @@ export default function Rutas() {
               abiertas.
             </p>
           )
+        ) : user?.role === "admin" ? (
+          <p style={{ color: "#2563eb" }}>
+            Como administrador, no puedes crear rutas desde esta pantalla.
+            Revisa solo el listado de rutas disponibles.
+          </p>
         ) : (
           <form onSubmit={handleSubmit}>
             <div

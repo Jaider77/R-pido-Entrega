@@ -21,7 +21,7 @@ const useAuthStore = create((set) => ({
       set({
         error: Array.isArray(detail)
           ? detail.map((item) => item.msg).join(". ")
-          : detail || "Login failed",
+          : detail || "Error de inicio de sesión",
       });
       return null;
     } finally {
@@ -44,7 +44,7 @@ const useAuthStore = create((set) => ({
       set({
         error: Array.isArray(detail)
           ? detail.map((item) => item.msg).join(". ")
-          : detail || "Registration failed",
+          : detail || "Error al registrar la cuenta",
       });
       return false;
     } finally {

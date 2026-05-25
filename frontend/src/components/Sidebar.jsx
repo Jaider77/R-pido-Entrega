@@ -20,58 +20,60 @@ export default function Sidebar() {
       }}
     >
       <nav>
-        <ul style={{ listStyle: "none" }}>
-          <li>
-            <Link
-              to="/"
-              style={{ textDecoration: "none", color: "var(--primary)" }}
-            >
-              Inicio
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/dashboard"
-              style={{ textDecoration: "none", color: "var(--primary)" }}
-            >
-              Panel de Control
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/rutas"
-              style={{ textDecoration: "none", color: "var(--primary)" }}
-            >
-              Rutas
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/notificaciones"
-              style={{ textDecoration: "none", color: "var(--primary)" }}
-            >
-              Notificaciones
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/profile"
-              style={{ textDecoration: "none", color: "var(--primary)" }}
-            >
-              Perfil
-            </Link>
-          </li>
-          {user?.role === "repartidor" && (
-            <li>
-              <Link
-                to="/repartidor-profile"
-                style={{ textDecoration: "none", color: "var(--primary)" }}
-              >
-                Perfil repartidor
-              </Link>
-            </li>
-          )}
-        </ul>
+        <div style={{ marginBottom: "0.75rem" }}>
+          <details>
+            <summary style={{ cursor: "pointer", fontWeight: 600 }}>Navegación</summary>
+            <ul style={{ listStyle: "none", paddingLeft: 0, marginTop: "0.5rem" }}>
+              <li>
+                <Link to="/" style={{ textDecoration: "none", color: "var(--primary)" }}>
+                  Inicio
+                </Link>
+              </li>
+              <li>
+                <Link to={user?.role === "admin" ? "/admin" : "/dashboard"} style={{ textDecoration: "none", color: "var(--primary)" }}>
+                  Panel de Control
+                </Link>
+              </li>
+              <li>
+                <Link to="/rutas" style={{ textDecoration: "none", color: "var(--primary)" }}>
+                  Rutas
+                </Link>
+              </li>
+              <li>
+                <Link to="/notificaciones" style={{ textDecoration: "none", color: "var(--primary)" }}>
+                  Notificaciones
+                </Link>
+              </li>
+            </ul>
+          </details>
+        </div>
+
+        <div>
+          <details>
+            <summary style={{ cursor: "pointer", fontWeight: 600 }}>Cuenta</summary>
+            <ul style={{ listStyle: "none", paddingLeft: 0, marginTop: "0.5rem" }}>
+              <li>
+                <Link to="/profile" style={{ textDecoration: "none", color: "var(--primary)" }}>
+                  Perfil
+                </Link>
+              </li>
+              {user?.role === "repartidor" && (
+                <li>
+                  <Link to="/repartidor-profile" style={{ textDecoration: "none", color: "var(--primary)" }}>
+                    Perfil repartidor
+                  </Link>
+                </li>
+              )}
+              {user?.role === "admin" && (
+                <li>
+                  <Link to="/admin" style={{ textDecoration: "none", color: "var(--primary)" }}>
+                    Administrador
+                  </Link>
+                </li>
+              )}
+            </ul>
+          </details>
+        </div>
       </nav>
     </aside>
   );

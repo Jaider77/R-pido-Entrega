@@ -242,3 +242,55 @@ def test_route_status_history():
     assert len(history) == 2
     assert history[0]["new_status"] == "delivered"
     assert history[1]["new_status"] == "in_transit"
+
+
+def test_admin_routes_restricted_for_non_admin():
+    original_override = app.dependency_overrides.get(verify_auth_token)
+    app.dependency_overrides[verify_auth_token] = lambda: {"sub": 2, "role": "user"}
+    try:
+        response = client.get(
+            "/api/rutas/admin/repartidores",
+            headers={"Authorization": MOCK_TOKEN},
+        )
+        assert response.status_code == 403
+    finally:
+        if original_override is not None:
+            app.dependency_overrides[verify_auth_token] = original_override
+        else:
+            app.dependency_overrides.pop(verify_auth_token, None)
+
+
+def test_admin_can_list_repartidores_and_overview():
+    original_override = app.dependency_overrides.get(verify_auth_token)
+    try:
+        app.dependency_overrides[verify_auth_token] = lambda: {"sub": 1, "role": "repartidor"}
+        response = client.post(
+            "/api/rutas/repartidores",
+            json={
+                "phone": "1234567890",
+                "vehicle_type": "motorcycle",
+                "license_plate": "ABC123",
+            },
+            headers={"Authorization": MOCK_TOKEN},
+        )
+        assert response.status_code == 201
+
+        app.dependency_overrides[verify_auth_token] = lambda: {"sub": 99, "role": "admin"}
+        admin_response = client.get(
+            "/api/rutas/admin/repartidores",
+            headers={"Authorization": MOCK_TOKEN},
+        )
+        assert admin_response.status_code == 200
+        assert len(admin_response.json()) == 1
+
+        overview_response = client.get(
+            "/api/rutas/admin/seguimiento",
+            headers={"Authorization": MOCK_TOKEN},
+        )
+        assert overview_response.status_code == 200
+        assert "total_rutas" in overview_response.json()
+    finally:
+        if original_override is not None:
+            app.dependency_overrides[verify_auth_token] = original_override
+        else:
+            app.dependency_overrides.pop(verify_auth_token, None)

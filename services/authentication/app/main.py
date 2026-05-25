@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.database import init_db
 from app.routes import router as auth_router
+from app.routes_admin import router as auth_admin_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -60,6 +61,7 @@ async def health_check():
 
 # Include routers
 app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
+app.include_router(auth_admin_router, prefix="/api/auth", tags=["admin"])
 
 
 # Root endpoint

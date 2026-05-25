@@ -17,7 +17,11 @@ export default function Register() {
       const user = await login(email, password);
       if (user) {
         const redirectPath =
-          user.role === "repartidor" ? "/repartidor-profile" : "/dashboard";
+          user.role === "repartidor"
+            ? "/repartidor-profile"
+            : user.role === "admin"
+              ? "/admin"
+              : "/dashboard";
         navigate(redirectPath, { replace: true });
       } else {
         navigate("/login", { replace: true });
@@ -39,14 +43,14 @@ export default function Register() {
         />
         <input
           type="email"
-          placeholder="Email"
+          placeholder="Correo electrónico"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Contraseña"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           minLength={8}

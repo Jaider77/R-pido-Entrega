@@ -10,6 +10,13 @@ const initialForm = {
   notification_type: "email",
 };
 
+const notificationTypeLabels = {
+  email: "Correo",
+  sms: "SMS",
+  push: "Push",
+  in_app: "In-App",
+};
+
 export default function Notificaciones() {
   const user = useAuthStore((s) => s.user);
   const [notifications, setNotifications] = useState([]);
@@ -163,7 +170,7 @@ export default function Notificaciones() {
               <input
                 type="text"
                 name="recipient"
-                placeholder="Destinatario (ID de usuario o email)"
+                placeholder="Destinatario (ID de usuario o correo electrónico)"
                 value={form.recipient}
                 onChange={handleChange}
                 required
@@ -173,7 +180,7 @@ export default function Notificaciones() {
                 value={form.notification_type}
                 onChange={handleChange}
               >
-                <option value="email">Email</option>
+                <option value="email">Correo</option>
                 <option value="sms">SMS</option>
                 <option value="push">Push</option>
                 <option value="in_app">In-App</option>
@@ -238,7 +245,7 @@ export default function Notificaciones() {
               onChange={(e) => setFilterType(e.target.value)}
             >
               <option value="all">Todos</option>
-              <option value="email">Email</option>
+              <option value="email">Correo</option>
               <option value="sms">SMS</option>
               <option value="push">Push</option>
               <option value="in_app">In-App</option>
@@ -320,7 +327,8 @@ export default function Notificaciones() {
                   >
                     <td style={{ padding: "0.75rem" }}>{notification.title}</td>
                     <td style={{ padding: "0.75rem" }}>
-                      {notification.notification_type}
+                      {notificationTypeLabels[notification.notification_type] ||
+                        notification.notification_type}
                     </td>
                     <td style={{ padding: "0.75rem" }}>
                       {notification.status}

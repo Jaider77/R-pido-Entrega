@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.database import init_db
 from app.routes import router as routes_router
+from app.routes_admin import router as admin_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -59,6 +60,7 @@ async def health_check():
 
 # Include routers
 app.include_router(routes_router, prefix="/api/rutas", tags=["rutas"])
+app.include_router(admin_router, prefix="/api/rutas", tags=["admin"])
 
 
 # Root endpoint

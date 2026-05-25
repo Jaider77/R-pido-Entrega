@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import useAuthStore from "./stores/authStore";
 import "./App.css";
+import fondo from "./image/fondo.png";
 
 // Pages
 import Home from "./pages/Home";
@@ -13,6 +14,7 @@ import Rutas from "./pages/Rutas";
 import Notificaciones from "./pages/Notificaciones";
 import RepartidorProfile from "./pages/RepartidorProfile";
 import Profile from "./pages/Profile";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 // Layouts
@@ -28,7 +30,15 @@ function App() {
   }, [init]);
   return (
     <Router>
-      <div className="app">
+      <div
+        className="app"
+        style={{
+          backgroundImage: `url(${fondo})`,
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center center",
+        }}
+      >
         <Toaster position="top-right" />
         <Header />
         <div className="app-container">
@@ -67,6 +77,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <RepartidorProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <Admin />
                   </ProtectedRoute>
                 }
               />

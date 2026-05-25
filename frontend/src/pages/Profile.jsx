@@ -12,7 +12,7 @@ export default function Profile() {
             <strong>Nombre:</strong> {user.full_name}
           </p>
           <p>
-            <strong>Email:</strong> {user.email}
+            <strong>Correo electrónico:</strong> {user.email}
           </p>
           <p>
             <strong>Rol:</strong> {user.role}

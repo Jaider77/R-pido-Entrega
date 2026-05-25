@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
+import Avatar from "./Avatar";
 
 export default function Header() {
   const user = useAuthStore((s) => s.user);
@@ -44,9 +45,12 @@ export default function Header() {
             Inicio
           </NavLink>
           {token && user ? (
-            <span style={{ marginRight: "1rem", opacity: 0.9 }}>
-              Hola, {user.full_name}
-            </span>
+            <NavLink to="/profile" style={{ textDecoration: "none" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", marginRight: "1rem", opacity: 0.95 }}>
+                <Avatar size={32} />
+                <span style={{ color: "white" }}>Hola, {user.full_name}</span>
+              </span>
+            </NavLink>
           ) : null}
           {token ? (
             <>

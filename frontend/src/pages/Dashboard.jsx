@@ -12,10 +12,15 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (user?.role === "admin") {
+      navigate("/admin", { replace: true });
+      return;
+    }
+
     if (user) {
       fetchStats();
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const fetchStats = async () => {
     setLoading(true);

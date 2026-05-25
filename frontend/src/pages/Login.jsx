@@ -13,32 +13,36 @@ export default function Login() {
     const user = await login(email, password);
     if (user) {
       const redirectPath =
-        user.role === "repartidor" ? "/repartidor-profile" : "/dashboard";
+        user.role === "repartidor"
+          ? "/repartidor-profile"
+          : user.role === "admin"
+            ? "/admin"
+            : "/dashboard";
       navigate(redirectPath, { replace: true });
     }
   };
 
   return (
     <div className="card" style={{ maxWidth: "400px", margin: "2rem auto" }}>
-      <h2>Login</h2>
+      <h2>Iniciar sesión</h2>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <form onSubmit={handleSubmit}>
         <input
           type="email"
-          placeholder="Email"
+          placeholder="Correo electrónico"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Contraseña"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
         <button type="submit" className="btn-primary" disabled={isLoading}>
-          {isLoading ? "Logging in..." : "Login"}
+          {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
         </button>
       </form>
       <p style={{ marginTop: "1rem" }}>
