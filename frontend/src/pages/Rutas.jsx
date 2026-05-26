@@ -49,6 +49,15 @@ export default function Rutas() {
     fetchRoutes();
   }, [user, repartidorProfile]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading) {
+        fetchRoutes();
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loading, user, repartidorProfile]);
+
   const fetchRepartidorProfile = async () => {
     try {
       const { data } = await rutasService.getMyRepartidorProfile();
@@ -203,13 +212,6 @@ export default function Rutas() {
           }}
         >
           <h2>Listado de rutas</h2>
-          <button
-            className="btn-secondary"
-            onClick={fetchRoutes}
-            disabled={loading}
-          >
-            {loading ? "Actualizando..." : "Actualizar"}
-          </button>
         </div>
 
         {routes.length === 0 ? (

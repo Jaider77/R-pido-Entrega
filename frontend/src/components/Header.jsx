@@ -33,7 +33,7 @@ export default function Header() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <img src={logo} alt="Logo" style={{ height: "80px", width: "auto" }} />
+          <img src={logo} alt="Logo" style={{ height: "85px", width: "auto" }} />
           <h1 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "bold", letterSpacing: "0.5px", fontFamily: "'Poppins', 'Segoe UI', sans-serif" }}>Rápido-Entrega</h1>
         </div>
         <nav style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
@@ -41,7 +41,7 @@ export default function Header() {
             <>
               <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
                 <Avatar size={32} />
-                <span style={{ color: "white" }}>Hola, {user.full_name}</span>
+                <span style={{ color: "white" }}> {user.full_name}</span>
               </span>
               <button
                 onClick={handleLogout}

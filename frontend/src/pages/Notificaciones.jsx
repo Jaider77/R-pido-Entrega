@@ -35,6 +35,15 @@ export default function Notificaciones() {
   }, [user, filterRead]);
 
   useEffect(() => {
+    const interval = setInterval(() => {
+      if (!loading && user) {
+        fetchNotifications();
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loading, user, filterRead]);
+
+  useEffect(() => {
     const results = notifications.filter((notification) => {
       const matchesType =
         filterType === "all" || notification.notification_type === filterType;
@@ -226,13 +235,6 @@ export default function Notificaciones() {
               {notifications.filter((item) => !item.is_read).length} sin leer.
             </p>
           </div>
-          <button
-            className="btn-secondary"
-            onClick={fetchNotifications}
-            disabled={loading}
-          >
-            {loading ? "Actualizando..." : "Actualizar"}
-          </button>
         </div>
 
         <div className="stats-grid" style={{ marginTop: "1rem" }}>

@@ -44,6 +44,15 @@ export default function RepartidorProfile() {
     }
   }, [profile]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!routeLoading && profile?.id) {
+        fetchActiveRoutes();
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [routeLoading, profile]);
+
   const fetchProfile = async () => {
     setLoading(true);
     try {
@@ -152,13 +161,6 @@ export default function RepartidorProfile() {
                   tránsito.
                 </p>
               </div>
-              <button
-                className="btn-secondary"
-                onClick={fetchActiveRoutes}
-                disabled={routeLoading}
-              >
-                {routeLoading ? "Actualizando..." : "Actualizar rutas"}
-              </button>
             </div>
 
             {activeRoutes.length === 0 ? (

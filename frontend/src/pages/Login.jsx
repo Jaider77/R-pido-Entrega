@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import useAuthStore from "../stores/authStore";
 
 export default function Login() {
@@ -12,6 +13,7 @@ export default function Login() {
     e.preventDefault();
     const user = await login(email, password);
     if (user) {
+      toast.success(`¡Bienvenido a Rapido-Etrega${user.full_name ? ": " + user.full_name : ""}!`);
       const redirectPath =
         user.role === "repartidor"
           ? "/repartidor-profile"
