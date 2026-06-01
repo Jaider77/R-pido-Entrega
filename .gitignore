@@ -104,3 +104,9 @@ db.sqlite3
 .vscode/
 !.vscode/extensions.json
 .venv_wsl/
+
+# NTFS/Windows Zone Identifiers
+*:Zone.Identifier
+
+# NTFS/Windows Zone Identifiers
+*:Zone.Identifier

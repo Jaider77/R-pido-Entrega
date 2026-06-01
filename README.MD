@@ -168,7 +168,8 @@ pre-commit install
 
 ```bash
 docker-compose up --build
-```
+# una vez lenvates la plataforma la forma de acceder a la web es por el puerto
+http://localhost:3001/
 
 ### Ejecutar frontend en modo desarrollo
 
