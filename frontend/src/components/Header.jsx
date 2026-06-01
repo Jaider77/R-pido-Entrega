@@ -25,13 +25,15 @@ export default function Header() {
     >
       <div
         style={{
-          maxWidth: "1200px",
+          maxWidth: "1000px",
           margin: "0 auto",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
         }}
       >
+
+        
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <img src={logo} alt="Logo" style={{ height: "85px", width: "auto" }} />
           <h1 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "bold", letterSpacing: "0.5px", fontFamily: "'Poppins', 'Segoe UI', sans-serif" }}>Rápido-Entrega</h1>

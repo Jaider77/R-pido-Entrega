@@ -48,6 +48,11 @@ async def verify_auth_token(credentials: HTTPAuthorizationCredentials = Depends(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token payload",
                 )
+            if payload.get("sub") and not payload.get("id"):
+                try:
+                    payload["id"] = int(payload["sub"])
+                except (TypeError, ValueError):
+                    payload["id"] = None
             payload["token"] = token
             return payload
     except Exception:
@@ -91,6 +96,19 @@ async def resolve_recipient_user_id(
     return default_user_id
 
 
+def resolve_thread_id(parent_id: Optional[int], db: Session) -> Optional[int]:
+    """Resolve the thread ID for a reply."""
+    if not parent_id:
+        return None
+    parent_notification = db.query(Notification).filter(Notification.id == parent_id).first()
+    if not parent_notification:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Parent notification not found",
+        )
+    return parent_notification.thread_id or parent_notification.id
+
+
 # ============================================
 # NOTIFICATION ENDPOINTS
 # ============================================
@@ -104,6 +122,29 @@ async def create_notification(
 ):
     """Create and send a notification"""
     notification_data = notification.model_dump()
+    sender_id = auth.get("id") or auth.get("user_id") or auth.get("sub")
+    try:
+        notification_data["sender_id"] = int(sender_id) if sender_id is not None else None
+    except (TypeError, ValueError):
+        notification_data["sender_id"] = None
+    parent_id = notification_data.get("parent_id")
+    if parent_id is not None:
+        parent_notification = db.query(Notification).filter(Notification.id == parent_id).first()
+        if not parent_notification:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Parent notification not found",
+            )
+        notification_data["thread_id"] = parent_notification.thread_id or parent_notification.id
+        if not notification_data.get("recipient"):
+            notification_data["recipient"] = (
+                str(parent_notification.sender_id)
+                if parent_notification.sender_id
+                else parent_notification.recipient
+            )
+        if notification_data.get("user_id") is None:
+            notification_data["user_id"] = parent_notification.sender_id or parent_notification.user_id
+
     notification_data["user_id"] = await resolve_recipient_user_id(
         notification_data.get("recipient"),
         notification_data.get("user_id"),
@@ -118,6 +159,11 @@ async def create_notification(
     db.add(db_notification)
     db.commit()
     db.refresh(db_notification)
+
+    if not db_notification.thread_id:
+        db_notification.thread_id = db_notification.parent_id or db_notification.id
+        db.commit()
+        db.refresh(db_notification)
 
     # Prototype behavior: mark notification as sent and store sent time
     db_notification.status = NotificationStatus.SENT
@@ -157,6 +203,27 @@ async def get_notification(
             detail="Notification not found",
         )
     return notification
+
+
+@router.get("/threads/{thread_id}", response_model=List[NotificationResponse])
+async def get_thread_notifications(
+    thread_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(verify_auth_token),
+):
+    """Get all messages in a notification thread."""
+    thread_notifications = (
+        db.query(Notification)
+        .filter(Notification.thread_id == thread_id)
+        .order_by(Notification.created_at.asc())
+        .all()
+    )
+    if not thread_notifications:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Thread not found",
+        )
+    return thread_notifications
 
 
 @router.get("/user/{user_id}", response_model=List[NotificationResponse])

@@ -7,7 +7,7 @@
   --danger: #ef4444;
   --warning: #f59e0b;
   --info: #0ea5e9;
-  --light: #15bf42;
+  --light: #051509;
   --dark: #1f2937;
   --border-radius: 0.5rem;
   --transition: 0.3s ease;
@@ -82,13 +82,28 @@ button {
 
 /* Cards */
 .card {
-  max-width: 800px; /* o el ancho que quieras */
+  max-width: 1500px; /* o el ancho que quieras */
   margin: 1rem auto;
-  background: rgba(241, 241, 241, 0.668);
+  background: rgba(246, 244, 244, 0.425);
   border-radius: var(--border-radius);
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(9, 2, 2, 0.8);
   margin-bottom: 1rem;
+}
+.cards-section {
+  display: flex;              /* Activa Flexbox */
+  flex-wrap: wrap;            /* Permite que bajen si no caben */
+  gap: 2rem;                  /* Espacio entre tarjetas */
+  justify-content: center;    /* Centra las tarjetas */
+}
+
+.cardp {
+  flex: 1 1 250px;            /* Se adaptan al ancho disponible */
+  max-width: 400px;           /* Límite de ancho */
+  background: rgba(216, 232, 232, 0.533);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(9, 2, 2, 0.8);
 }
 
 .card:hover {
@@ -144,6 +159,44 @@ select:focus {
 
 .admin-table td {
   vertical-align: top;
+}
+
+.admin-panel-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-panel-section summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  margin: -1rem -1rem 1rem;
+  border-radius: 1rem 1rem 0 0;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 700;
+}
+
+.admin-panel-section summary::marker {
+  display: none;
+}
+
+.admin-panel-section[open] summary {
+  color: #1d4ed8;
+}
+
+.admin-panel-section table {
+  width: 100%;
+}
+
+.admin-panel-section p {
+  margin: 0.5rem 0 0;
 }
 
 /* Responsive */

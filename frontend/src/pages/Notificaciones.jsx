@@ -10,12 +10,31 @@ const initialForm = {
   notification_type: "email",
 };
 
+const initialReply = {
+  notificationId: null,
+  senderId: null,
+  title: "",
+  message: "",
+};
+
 const notificationTypeLabels = {
   email: "Correo",
   sms: "SMS",
   push: "Push",
   in_app: "In-App",
 };
+
+const notificationStatusLabels = {
+  pending: "Pendiente",
+  sent: "Enviado",
+  delivered: "Entregado",
+  failed: "Fallida",
+  read: "Leído",
+  unread: "No leído",
+};
+
+const translateNotificationStatus = (status) =>
+  notificationStatusLabels[status] || status || "-";
 
 export default function Notificaciones() {
   const user = useAuthStore((s) => s.user);
@@ -27,6 +46,8 @@ export default function Notificaciones() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [replyState, setReplyState] = useState(initialReply);
+  const [replySending, setReplySending] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -48,9 +69,10 @@ export default function Notificaciones() {
       const matchesType =
         filterType === "all" || notification.notification_type === filterType;
       const searchValue = searchTerm.toLowerCase();
+      const title = (notification.title || "").toLowerCase();
+      const message = (notification.message || "").toLowerCase();
       const matchesSearch =
-        notification.title.toLowerCase().includes(searchValue) ||
-        notification.message.toLowerCase().includes(searchValue);
+        title.includes(searchValue) || message.includes(searchValue);
       return matchesType && matchesSearch;
     });
 
@@ -134,19 +156,65 @@ export default function Notificaciones() {
     }
   };
 
-  const respondNotification = async (notificationId) => {
-    try {
-      await notificacionesService.updateNotification(notificationId, {
-        is_read: true,
-      });
-      toast.success("Notificación respondida correctamente.");
-      fetchNotifications();
-    } catch (error) {
-      toast.error("No se pudo responder la notificación.");
+  const respondNotification = async (
+    notificationId,
+    senderId,
+    originalTitle,
+  ) => {
+    if (!senderId) {
+      toast.error("No se encontró el remitente para esta notificación.");
+      return;
     }
+    setReplyState({
+      notificationId,
+      senderId,
+      title: originalTitle ? `Re: ${originalTitle}` : "",
+      message: "",
+    });
   };
 
-  const canSendNotifications = user?.role !== "repartidor";
+  const cancelReply = () => {
+    setReplyState(initialReply);
+  };
+
+  const handleReplyChange = (event) => {
+    const { name, value } = event.target;
+    setReplyState((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleReplySubmit = async (event) => {
+    event.preventDefault();
+    if (!replyState.senderId) {
+      toast.error("No hay destinatario definido para la respuesta.");
+      return;
+    }
+    if (!replyState.title || !replyState.message) {
+      toast.error("Debes completar el título y el mensaje de respuesta.");
+      return;
+    }
+
+    setReplySending(true);
+    try {
+      await notificacionesService.createNotification({
+        user_id: replyState.senderId,
+        recipient: String(replyState.senderId),
+        parent_id: replyState.notificationId,
+        title: replyState.title,
+        message: replyState.message,
+        notification_type: "in_app",
+      });
+      await notificacionesService.updateNotification(replyState.notificationId, {
+        is_read: true,
+      });
+      toast.success("Respuesta enviada correctamente.");
+      setReplyState(initialReply);
+      fetchNotifications();
+    } catch (error) {
+      toast.error("No se pudo enviar la respuesta.");
+    } finally {
+      setReplySending(false);
+    }
+  };
 
   return (
     <div>
@@ -157,66 +225,56 @@ export default function Notificaciones() {
         </p>
       </div>
 
-      {canSendNotifications ? (
-        <div className="card">
-          <h2>Enviar notificación</h2>
-          <form onSubmit={handleSubmit}>
-            <div
-              style={{
-                display: "grid",
-                gap: "1rem",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              }}
-            >
-              <input
-                type="text"
-                name="title"
-                placeholder="Título"
-                value={form.title}
-                onChange={handleChange}
-                required
-              />
-              <input
-                type="text"
-                name="recipient"
-                placeholder="Destinatario (ID de usuario o correo electrónico)"
-                value={form.recipient}
-                onChange={handleChange}
-                required
-              />
-              <select
-                name="notification_type"
-                value={form.notification_type}
-                onChange={handleChange}
-              >
-                <option value="email">Correo</option>
-                <option value="sms">SMS</option>
-                <option value="push">Push</option>
-                <option value="in_app">In-App</option>
-              </select>
-            </div>
-            <textarea
-              name="message"
-              placeholder="Mensaje"
-              value={form.message}
+      <div className="card">
+        <h2>Enviar notificación</h2>
+        <form onSubmit={handleSubmit}>
+          <div
+            style={{
+              display: "grid",
+              gap: "1rem",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            }}
+          >
+            <input
+              type="text"
+              name="title"
+              placeholder="Título"
+              value={form.title}
               onChange={handleChange}
-              rows={4}
               required
             />
-            <button type="submit" className="btn-primary" disabled={sending}>
-              {sending ? "Enviando..." : "Enviar notificación"}
-            </button>
-          </form>
-        </div>
-      ) : (
-        <div className="card">
-          <h2>Responder notificaciones</h2>
-          <p>
-            Como repartidor solo puedes responder las notificaciones que te
-            lleguen. Usa el botón "Responder" cuando recibas un mensaje.
-          </p>
-        </div>
-      )}
+            <input
+              type="text"
+              name="recipient"
+              placeholder="Destinatario (ID de usuario o correo electrónico)"
+              value={form.recipient}
+              onChange={handleChange}
+              required
+            />
+            <select
+              name="notification_type"
+              value={form.notification_type}
+              onChange={handleChange}
+            >
+              <option value="email">Correo</option>
+              <option value="sms">SMS</option>
+              <option value="push">Push</option>
+              <option value="in_app">In-App</option>
+            </select>
+          </div>
+          <textarea
+            name="message"
+            placeholder="Mensaje"
+            value={form.message}
+            onChange={handleChange}
+            rows={4}
+            required
+          />
+          <button type="submit" className="btn-primary" disabled={sending}>
+            {sending ? "Enviando..." : "Enviar notificación"}
+          </button>
+        </form>
+      </div>
 
       <div className="card">
         <div
@@ -323,8 +381,9 @@ export default function Notificaciones() {
               </thead>
               <tbody>
                 {filteredNotifications.map((notification) => (
-                  <tr
-                    key={notification.id}
+                  <>
+                    <tr
+                      key={notification.id}
                     style={{ borderTop: "1px solid #e5e7eb" }}
                   >
                     <td style={{ padding: "0.75rem" }}>{notification.title}</td>
@@ -333,7 +392,7 @@ export default function Notificaciones() {
                         notification.notification_type}
                     </td>
                     <td style={{ padding: "0.75rem" }}>
-                      {notification.status}
+                      {translateNotificationStatus(notification.status)}
                     </td>
                     <td style={{ padding: "0.75rem" }}>
                       {notification.is_read ? "Sí" : "No"}
@@ -344,20 +403,22 @@ export default function Notificaciones() {
                         : "-"}
                     </td>
                     <td style={{ padding: "0.75rem" }}>
-                      {user?.role === "repartidor" ? (
-                        !notification.is_read ? (
+                      {!notification.is_read ? (
+                        notification.sender_id ? (
                           <button
                             type="button"
                             className="btn-secondary"
-                            onClick={() => respondNotification(notification.id)}
+                            onClick={() =>
+                              respondNotification(
+                                notification.id,
+                                notification.sender_id,
+                                notification.title,
+                              )
+                            }
                           >
                             Responder
                           </button>
                         ) : (
-                          <span>Respondido</span>
-                        )
-                      ) : (
-                        !notification.is_read && (
                           <button
                             type="button"
                             className="btn-secondary"
@@ -366,9 +427,56 @@ export default function Notificaciones() {
                             Marcar leída
                           </button>
                         )
+                      ) : (
+                        <span>Respondido</span>
                       )}
                     </td>
                   </tr>
+                  {replyState.notificationId === notification.id && (
+                    <tr>
+                      <td colSpan="6" style={{ padding: "0.75rem", background: "#f8fafc" }}>
+                        <div style={{ display: "grid", gap: "1rem" }}>
+                          <strong>Responder mensaje</strong>
+                          <form onSubmit={handleReplySubmit}>
+                            <input
+                              type="text"
+                              name="title"
+                              placeholder="Título de respuesta"
+                              value={replyState.title}
+                              onChange={handleReplyChange}
+                              required
+                            />
+                            <textarea
+                              name="message"
+                              placeholder="Escribe tu respuesta aquí"
+                              value={replyState.message}
+                              onChange={handleReplyChange}
+                              rows={4}
+                              required
+                            />
+                            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                              <button
+                                type="submit"
+                                className="btn-primary"
+                                disabled={replySending}
+                              >
+                                {replySending ? "Enviando respuesta..." : "Enviar respuesta"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={cancelReply}
+                                disabled={replySending}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </>
                 ))}
               </tbody>
             </table>

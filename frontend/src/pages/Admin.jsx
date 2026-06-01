@@ -13,6 +13,38 @@ export default function Admin() {
   const [pedidos, setPedidos] = useState([]);
   const [historial, setHistorial] = useState([]);
 
+  const statusLabels = {
+    pending: "Pendiente",
+    assigned: "Asignada",
+    in_transit: "En tránsito",
+    delivered: "Entregado",
+    cancelled: "Cancelada",
+    failed: "Fallida",
+    created: "Creado",
+    received: "Recibido",
+    completed: "Completado",
+  };
+
+  const overviewLabels = {
+    total_rutas: "Total rutas",
+    pending: "Pendientes",
+    assigned: "Asignadas",
+    "in transit": "En tránsito",
+    in_transit: "En tránsito",
+    delivered: "Entregadas",
+    total_repartidores: "Total repartidores",
+    active_repartidores: "Repartidores activos",
+    total_users: "Total usuarios",
+    active_users: "Usuarios activos",
+    total_pedidos: "Total pedidos",
+  };
+
+  const translateStatus = (status) => statusLabels[status] || status || "-";
+  const translateOverviewLabel = (label) => {
+    const normalized = label.replaceAll("_", " ").toLowerCase();
+    return overviewLabels[normalized] || label.replaceAll("_", " ");
+  };
+
   useEffect(() => {
     if (!user) return;
     if (user.role !== "admin") {
@@ -63,8 +95,8 @@ export default function Admin() {
       {loading && <p>Cargando datos...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
       {overview && (
-        <section style={{ marginBottom: "1.5rem" }}>
-          <h3>Resumen</h3>
+        <details open className="admin-panel-section">
+          <summary>Resumen</summary>
           <table className="admin-table">
             <thead>
               <tr>
@@ -75,17 +107,17 @@ export default function Admin() {
             <tbody>
               {Object.entries(overview).map(([label, value]) => (
                 <tr key={label}>
-                  <td>{label.replaceAll("_", " ")}</td>
+                  <td>{translateOverviewLabel(label)}</td>
                   <td>{value}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </section>
+        </details>
       )}
 
-      <section style={{ marginBottom: "1.5rem" }}>
-        <h3>Usuarios recientes</h3>
+      <details open className="admin-panel-section">
+        <summary>Usuarios recientes ({users.length})</summary>
         <table className="admin-table">
           <thead>
             <tr>
@@ -106,10 +138,10 @@ export default function Admin() {
             ))}
           </tbody>
         </table>
-      </section>
+      </details>
 
-      <section style={{ marginBottom: "1.5rem" }}>
-        <h3>Repartidores</h3>
+      <details open className="admin-panel-section">
+        <summary>Repartidores ({repartidores.length})</summary>
         <table className="admin-table">
           <thead>
             <tr>
@@ -130,10 +162,10 @@ export default function Admin() {
             ))}
           </tbody>
         </table>
-      </section>
+      </details>
 
-      <section>
-        <h3>Pedidos recientes</h3>
+      <details open className="admin-panel-section">
+        <summary>Pedidos recientes ({pedidos.length})</summary>
         <table className="admin-table">
           <thead>
             <tr>
@@ -147,17 +179,17 @@ export default function Admin() {
             {pedidos.map((pedido) => (
               <tr key={pedido.id}>
                 <td>{pedido.id}</td>
-                <td>{pedido.status}</td>
+                <td>{translateStatus(pedido.status)}</td>
                 <td>{pedido.repartidor_id || "Sin asignar"}</td>
                 <td>{pedido.created_by_user_id}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </section>
+      </details>
 
-      <section style={{ marginTop: "1.5rem" }}>
-        <h3>Historial diario</h3>
+      <details open className="admin-panel-section">
+        <summary>Historial diario ({historial.length})</summary>
         {historial.length ? (
           <table className="admin-table">
             <thead>
@@ -171,7 +203,7 @@ export default function Admin() {
               {historial.map((item) => (
                 <tr key={item.id}>
                   <td>{item.id}</td>
-                  <td>{item.status}</td>
+                  <td>{translateStatus(item.status)}</td>
                   <td>{new Date(item.completed_at).toLocaleString()}</td>
                 </tr>
               ))}
@@ -180,7 +212,7 @@ export default function Admin() {
         ) : (
           <p>No hay entregas completadas en el día seleccionado.</p>
         )}
-      </section>
+      </details>
     </div>
   );
 }

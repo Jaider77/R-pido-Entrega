@@ -14,7 +14,7 @@ export default function Sidebar() {
       className="sidebar"
       style={{
         width: "250px",
-        backgroundColor: "white",
+        backgroundColor: "rgba(246, 244, 244, 0.53)",
         padding: "1rem",
         borderRadius: "var(--border-radius)",
       }}

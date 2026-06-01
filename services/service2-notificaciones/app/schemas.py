@@ -40,6 +40,7 @@ class NotificationCreate(NotificationBase):
     """Notification creation schema"""
 
     user_id: Optional[int] = None
+    parent_id: Optional[int] = None
     is_read: bool = False
 
 
@@ -55,7 +56,10 @@ class NotificationResponse(NotificationBase):
 
     id: int
     user_id: int
+    sender_id: Optional[int]
     status: NotificationStatus
+    parent_id: Optional[int]
+    thread_id: Optional[int]
     is_read: bool
     error_message: Optional[str]
     created_at: datetime

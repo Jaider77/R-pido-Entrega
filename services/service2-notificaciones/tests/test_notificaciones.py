@@ -86,6 +86,50 @@ def test_create_notification_template():
     assert response.status_code == 201
 
 
+def test_reply_to_notification():
+    """Test replying to a notification and preserving thread relationships"""
+    create_response = client.post(
+        "/api/notificaciones/",
+        json={
+            "user_id": 2,
+            "title": "Original mensaje",
+            "message": "Mensaje inicial",
+            "recipient": "2",
+            "notification_type": "in_app",
+        },
+        headers={"Authorization": MOCK_TOKEN},
+    )
+    assert create_response.status_code == 201
+    original = create_response.json()
+
+    reply_response = client.post(
+        "/api/notificaciones/",
+        json={
+            "user_id": 1,
+            "recipient": "1",
+            "parent_id": original["id"],
+            "title": "Re: Original mensaje",
+            "message": "Respuesta al mensaje",
+            "notification_type": "in_app",
+        },
+        headers={"Authorization": MOCK_TOKEN},
+    )
+    assert reply_response.status_code == 201
+    reply = reply_response.json()
+    assert reply["parent_id"] == original["id"]
+    assert reply["thread_id"] == original["thread_id"] or reply["thread_id"] == original["id"]
+
+    thread_response = client.get(
+        f"/api/notificaciones/threads/{reply['thread_id']}",
+        headers={"Authorization": MOCK_TOKEN},
+    )
+    assert thread_response.status_code == 200
+    thread_messages = thread_response.json()
+    assert len(thread_messages) == 2
+    assert thread_messages[0]["id"] == original["id"]
+    assert thread_messages[1]["parent_id"] == original["id"]
+
+
 def test_get_user_notifications():
     """Test getting user notifications"""
     response = client.get(

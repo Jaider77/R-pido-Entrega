@@ -257,6 +257,13 @@ GET /api/notificaciones/user/{user_id}
 Authorization: Bearer <token>
 ```
 
+### Get Notification Thread
+
+```http
+GET /api/notificaciones/threads/{thread_id}
+Authorization: Bearer <token>
+```
+
 ### Create Notification Template
 
 ```http

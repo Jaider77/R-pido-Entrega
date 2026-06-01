@@ -5,7 +5,7 @@ SQLAlchemy models for notifications service
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import Boolean, Column, DateTime
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Integer, String, Text
 from sqlalchemy.orm import declarative_base
@@ -46,6 +46,9 @@ class Notification(Base):
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
     recipient = Column(String(255), nullable=False)  # email, phone, or user_id
+    sender_id = Column(Integer, nullable=True, index=True)
+    parent_id = Column(Integer, ForeignKey("notifications.id"), nullable=True, index=True)
+    thread_id = Column(Integer, nullable=True, index=True)
     status = Column(
         SQLEnum(NotificationStatus),
         default=NotificationStatus.PENDING,
