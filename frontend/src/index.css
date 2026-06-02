@@ -61,16 +61,22 @@ button {
   padding: 0.5rem 1rem;
   transition: all var(--transition);
 }
-
 .btn-primary {
-  background-color: white;
+  background-color: rgb(196, 213, 225);
   color: rgb(28, 27, 27);
+  border: none; /* elimina el borde por defecto */
+  border-radius: 8px; /* redondea las esquinas */
+  padding: 5px 10px; /* agranda el área del botón */
+  font-weight: bold; /* texto más marcado */
+  cursor: pointer; /* cambia el cursor al pasar */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* sombra elegante */
+  transition: all 0.3s ease; /* animación suave */
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-dark);
+  background-color: rgb(176, 193, 205); /* tono más oscuro al pasar */
+  transform: scale(1.05); /* efecto de agrandamiento */
 }
-
 .btn-secondary {
   background-color: var(--secondary);
   color: white;
@@ -84,7 +90,7 @@ button {
 .card {
   max-width: 1500px; /* o el ancho que quieras */
   margin: 1rem auto;
-  background: rgba(246, 244, 244, 0.425);
+  background: rgba(238, 222, 222, 0.425);
   border-radius: var(--border-radius);
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(9, 2, 2, 0.8);

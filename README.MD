@@ -1,4 +1,4 @@
-# 📦 Rápido-Entrega S.A. — Ecosistema de Microservicios
+# 📦 Rápido-Entrega S.A. — Plataforma de Microservicios
 
 > Plataforma logística para la gestión de repartidores, rutas y notificaciones.
 
@@ -11,48 +11,15 @@ Este repositorio contiene la infraestructura de la plataforma logística de Ráp
 - Autenticación con login, registro y sesión persistente.
 - Botón de `Cerrar sesión` funcional en la cabecera.
 - Protección de rutas privadas: `Dashboard`, `Rutas`, `Notificaciones` y `Perfil`.
-- Dashboard con métricas del usuario:
-  - total de rutas
-  - entregas completadas
-  - rutas en tránsito
-  - rutas pendientes
-  - ratio de éxito
-  - notificaciones totales
-  - notificaciones sin leer
-  - notificaciones fallidas
-- Página `Rutas` con:
-  - creación de rutas desde UI para usuarios normales
-  - el formulario de creación ahora acepta direcciones modernas (`origin_address`, `destination_address`) en lugar de latitud/longitud
-  - el backend intenta geocodificar las direcciones (OpenStreetMap/Nominatim) para obtener coordenadas y estimar distancia/tiempo
-  - rutas creadas sin asignar repartidor automáticamente
-  - listado de rutas con origen, destino, repartidor y estado
-  - repartidores solo ven rutas abiertas si tienen perfil creado
-  - repartidores pueden tomar rutas abiertas y actualizar su estado
-  - recarga manual de datos
-- Página `Perfil` con:
-  - vista del usuario actual y su rol
-  - botón para convertir una cuenta normal en repartidor
-  - redirección automática al perfil de repartidor después de la actualización de rol
-- Página `Notificaciones` con:
-  - envío de notificaciones
-  - historial por usuario
-  - filtros por tipo y estado
-  - búsqueda por título o mensaje
-  - marcado de notificaciones como leídas
-  - repartidor puede responder notificaciones recibidas en lugar de enviar nuevas
+- Dashboard con métricas del usuario.
+- Rutas y notificaciones con filtros y búsqueda.
 
 ### Backend
 
-- `service1-rutas`:
-  - validación de repartidor al crear rutas
-  - `is_active` como booleano en el modelo de repartidor
-- `service2-notificaciones`:
-  - logs de auditoría y estado de notificaciones
-  - soporte de plantillas para envíos masivos
-- `service3`:
-  - `ItemCreate` con `owner_id` en payload JSON
-  - `ActivityCreate` con `user_id` en payload JSON
-- Pruebas actualizadas para flujos más reales y menos dependencia de auth externa
+- Microservicios desacoplados para auth, rutas, notificaciones y service3.
+- Base de datos PostgreSQL independiente para cada servicio.
+- Redis y RabbitMQ incluidos para caché y mensajes.
+- API Gateway con Nginx para enrutar frontend y APIs.
 
 ---
 
@@ -75,79 +42,24 @@ R-pido-Entrega/
 
 ---
 
-## 🔁 Flujo DevOps — Automatización Completa
+## 🚀 Pasos para ejecutar en otra máquina
 
-### 1. Colaboración con Git
-
-```
-Dueño del repositorio
-        │
-        ├── clone  ──────────────────────── trabaja directamente
-        │
-Colaborador externo
-        │
-        └── fork → clone → branch → PR ──► revisión → merge
-```
-
-### 2. Ciclo de desarrollo local
+1. Clona el repositorio:
 
 ```bash
-# 1. Realizar cambios en el código
-git add .
-git commit -m "feat: descripción del cambio"   # ← pre-commit se ejecuta aquí
-git push origin main
-```
-
-> ⚡ Al hacer `git commit`, los hooks de **pre-commit** se ejecutan automáticamente:
->
-> - `ruff check` — linting del código Python
-> - `ruff format` — formateo automático
-> - `pytest` — ejecución de pruebas unitarias
-
-### 3. Pipeline de CI/CD con GitHub Actions
-
-```
-git push ──────────────────► GitHub Actions: CI
-                                   ├── ruff --lint
-                                   ├── ruff --format
-                                   └── pytest
-
-git tag v1.0 && git push --tags ► GitHub Actions: CD  (patrón: v*)
-                                   ├── [CI completo]
-                                   ├── docker build (todos los servicios)
-                                   └── docker push → Registry / Deploy
-```
-
----
-
-## 🛠️ Requisitos Previos
-
-| Herramienta | Versión mínima | Uso |
-|---|---|---|
-| Docker | 24+ | Contenedores de servicios |
-| Docker Compose | 2.x | Orquestación local |
-| Python | 3.11+ | Microservicios backend |
-| Node.js | 18+ | Frontend |
-| Git | 2.x | Control de versiones |
-
----
-
-## ⚙️ Instalación y Uso Local
-
-### Clonar el repositorio
-
-```bash
-# Dueño / Colaborador con acceso directo
 git clone https://github.com/tu-org/R-pido-Entrega.git
 cd R-pido-Entrega
+```
 
-# Colaborador externo (fork)
+Si trabajas con un fork:
+
+```bash
 git clone https://github.com/TU-USUARIO/R-pido-Entrega.git
 cd R-pido-Entrega
 git remote add upstream https://github.com/tu-org/R-pido-Entrega.git
 ```
 
-### Configurar variables de entorno
+2. Crea los archivos de entorno:
 
 ```bash
 cp services/authentication/.env.example services/authentication/.env
@@ -157,44 +69,74 @@ cp services/service3/.env.example services/service3/.env
 cp frontend/.env.example frontend/.env
 ```
 
-### Instalar pre-commit hooks (primera vez)
+3. Verifica que Docker Compose esté instalado:
 
 ```bash
-pip install pre-commit
-pre-commit install
+docker compose version
 ```
 
-### Levantar toda la plataforma
+Si tu entorno solo reconoce `docker-compose`, usa ese comando.
+
+4. Levanta toda la plataforma:
 
 ```bash
-docker-compose up --build
-# una vez lenvates la plataforma la forma de acceder a la web es por el puerto
-http://localhost:3001/
+docker compose up --build
+```
 
-### Ejecutar frontend en modo desarrollo
+> `docker-compose up --build` también funciona en instalaciones antiguas.
+
+5. Accede a la aplicación:
+
+- Frontend: http://localhost:3001
+- API Gateway: http://localhost:8080
+- Auth: http://localhost:8001
+- Rutas: http://localhost:8002
+- Notificaciones: http://localhost:8003
+- Service3: http://localhost:8004
+- RabbitMQ UI: http://localhost:15672
+
+---
+
+## 🌱 Desarrollo local opcional
+
+### Frontend local
 
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
 
-### Ejecutar backend localmente
+Abre: http://localhost:3000
+
+> El frontend usa el API Gateway en `http://localhost:8080/api`.
+
+### Backend local (opcional)
 
 ```bash
 cd services/authentication
+python -m pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 
 cd ../service1-rutas
+python -m pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
 
 cd ../service2-notificaciones
+python -m pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
 
 cd ../service3
+python -m pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
 ```
 
-### Ejecutar pruebas
+> Nota: cada servicio tiene su propio `requirements.txt` en la carpeta correspondiente. Instala estos paquetes antes de ejecutar `uvicorn` si trabajas fuera de Docker.
+
+
+---
+
+## 🧪 Ejecutar pruebas
 
 ```bash
 pytest
@@ -203,23 +145,31 @@ pytest services/service2-notificaciones/tests/test_notificaciones.py
 pytest services/service3/tests/test_service3.py
 ```
 
-## 📌 Rutas principales
+---
 
-- Frontend: <http://localhost:3001>
-- API Gateway: <http://localhost:80>
-- Auth: <http://localhost:80/api/auth/>
-- Rutas: <http://localhost:80/api/rutas/>
+## 🔧 Problemas comunes
 
-## Cambios en el contrato de Rutas (IMPORTANTE)
+- Si faltan variables de entorno, crea los `.env` desde los `.env.example`.
+- Si `docker compose` no funciona, prueba `docker-compose`.
+- Si hay puertos ocupados, libera `3001`, `8080`, `5432-5435`, `6379`, `5672`, `15672`.
+- Para reiniciar todo:
 
-- Los endpoints de creación de rutas ahora aceptan `origin_address` y `destination_address` (texto libre). Las propiedades `origin_latitude`, `origin_longitude`, `destination_latitude` y `destination_longitude` siguen siendo válidas pero son opcionales.
-- Si se proporcionan direcciones y no coordenadas, el servicio de rutas intentará geocodificar las direcciones usando Nominatim (OpenStreetMap). Si la geocodificación falla, la ruta se creará sin datos de distancia/tiempo.
-- Frontend actualizado: `frontend/src/pages/Rutas.jsx` envía `origin_address` y `destination_address` en el payload.
+```bash
+docker compose down --volumes --remove-orphans
+```
 
-Si tienes integraciones externas que enviaban directamente coordenadas, seguirán funcionando; sin embargo, se recomienda migrar al uso de direcciones para una UX más sencilla.
+---
 
-- Notificaciones: <http://localhost:80/api/notificaciones/>
-- Service3: <http://localhost:80/api/service3/>
+## 📌 Endpoints principales
+
+- Frontend: http://localhost:3001
+- API Gateway: http://localhost:8080
+- Auth API: http://localhost:8080/api/auth/
+- Rutas API: http://localhost:8080/api/rutas/
+- Notificaciones API: http://localhost:8080/api/notificaciones/
+- Service3 API: http://localhost:8080/api/service3/
+
+---
 
 ## 🤝 Contribución
 
